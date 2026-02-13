@@ -9,15 +9,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "@supabase/supabase-js": "^2.95.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "axios": "^1.13.2",
-    "lucide-react": "^0.555.0",
-    "react-hot-toast": "^2.6.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "leaflet": "1.9.4",
-    "react-leaflet": "5.0.0-rc.2"
+    "lucide-react": "^0.555.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
+    "react-leaflet": "5.0.0-rc.2",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

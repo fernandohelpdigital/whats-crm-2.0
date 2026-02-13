@@ -14,7 +14,7 @@ const logListeners: LogCallback[] = [];
 export const initSocket = (config: AuthConfig): Socket | null => {
     // Se já estiver conectado na mesma instância, reaproveita
     if (socket?.connected) {
-        const currentNs = socket.nsp.replace('/', '');
+        const currentNs = (socket as any).nsp?.replace('/', '') ?? '';
         if (currentNs === config.instanceName.trim()) {
             return socket;
         }

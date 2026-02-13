@@ -532,9 +532,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ contact, config, onToggleInfo, onBa
                                             <span className="text-xs font-bold">Download</span>
                                         </Button>
                                     ) : (
-                                        <Button variant="link" size="sm" asChild className={`h-8 font-bold ${isMe ? 'text-white' : 'text-primary'}`}>
-                                            <a href={mediaUrl} download>Abrir Arquivo</a>
-                                        </Button>
+                                        <a href={mediaUrl} download className={`inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-bold underline-offset-4 hover:underline ${isMe ? 'text-white' : 'text-primary'}`}>Abrir Arquivo</a>
                                     )}
                                 </div>
                             ) : (
