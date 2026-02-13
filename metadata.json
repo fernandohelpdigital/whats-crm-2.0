@@ -1,0 +1,7 @@
+{
+  "name": "CRM 2.0",
+  "description": "A full-stack style chat application using Evolution API v2.3, featuring a 3-column layout, dark mode, and optimistic UI updates.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
