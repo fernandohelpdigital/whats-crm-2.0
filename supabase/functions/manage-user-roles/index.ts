@@ -6,36 +6,36 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log("Function invoked, method:", req.method);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
-    console.log("Auth header present:", !!authHeader);
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const token = authHeader.replace("Bearer ", "");
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
-    console.log("Auth result - user:", user?.id, "error:", authError?.message);
-    if (authError || !user) {
+    const { data: claimsData, error: authError } = await anonClient.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const userId = claimsData.claims.sub as string;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "admin");
 
     if (!callerRoles || callerRoles.length === 0) {
@@ -76,6 +76,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    if (action === "list_instances") {
+      const apiBaseUrl = base_url || "https://api.automacaohelp.com.br";
+      // Find any profile with an api_key to use for fetching instances
+      const { data: profilesWithKey } = await adminClient
+        .from("profiles")
+        .select("api_key")
+        .not("api_key", "is", null)
+        .limit(1);
+      
+      const globalApiKey = api_key || profilesWithKey?.[0]?.api_key;
+      if (!globalApiKey) {
+        return new Response(JSON.stringify({ error: "Nenhuma API Key configurada. Configure a API Key de pelo menos um usuário." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const instancesRes = await fetch(`${apiBaseUrl}/instance/fetchInstances`, {
+        headers: { apikey: globalApiKey },
+      });
+      if (!instancesRes.ok) {
+        const errBody = await instancesRes.text();
+        return new Response(JSON.stringify({ error: `Evolution API error: ${instancesRes.status}`, details: errBody }), { status: instancesRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const instancesData = await instancesRes.json();
+      return new Response(JSON.stringify(instancesData), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (action === "promote") {
       if (!user_id) throw new Error("user_id required");
       await adminClient.from("user_roles").upsert(
@@ -87,7 +112,7 @@ Deno.serve(async (req) => {
 
     if (action === "demote") {
       if (!user_id) throw new Error("user_id required");
-      if (user_id === user.id) {
+      if (user_id === userId) {
         return new Response(JSON.stringify({ error: "Você não pode remover seu próprio acesso admin" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await adminClient.from("user_roles").delete().eq("user_id", user_id).eq("role", "admin");
