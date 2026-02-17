@@ -107,12 +107,33 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         user_id: user.id,
       }));
 
-      // Upsert in batches of 100 - updates name/avatar if contact already exists
+      // Upsert contacts in batches of 100
       for (let i = 0; i < contactsToUpsert.length; i += 100) {
         const batch = contactsToUpsert.slice(i, i + 100);
         await supabase
           .from('contacts')
           .upsert(batch, { onConflict: 'phone,user_id' });
+      }
+
+      // Sync leads to deals table with status 'lead_capturado'
+      const dealsToUpsert = validContacts.map(c => ({
+        title: c.name || c.number,
+        company: 'Lead do WhatsApp',
+        tags: ['WhatsApp Lead'],
+        value: 0,
+        status: 'lead_capturado' as const,
+        date: c.timestampRaw ? new Date(c.timestampRaw * 1000).toISOString() : new Date().toISOString(),
+        contact_id: c.id,
+        avatar_url: c.avatarUrl || null,
+        phone: c.number,
+        user_id: user.id,
+      }));
+
+      for (let i = 0; i < dealsToUpsert.length; i += 100) {
+        const batch = dealsToUpsert.slice(i, i + 100);
+        await supabase
+          .from('deals')
+          .upsert(batch, { onConflict: 'phone,user_id', ignoreDuplicates: true });
       }
     } catch (e) {
       console.error("Erro ao sincronizar contatos:", e);
@@ -140,19 +161,8 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         syncContactsToSupabase(data);
         
         if (isInitial) {
-            const initialLeads: Deal[] = data.map(c => ({
-              id: `lead_${c.id}`,
-              title: c.name,
-              company: 'Lead do WhatsApp',
-              tags: ['WhatsApp Lead'],
-              value: 0, 
-              status: 'lead_capturado', 
-              date: new Date(c.timestampRaw ? c.timestampRaw * 1000 : Date.now()),
-              contactId: c.id,
-              avatarUrl: c.avatarUrl,
-              phone: c.number
-            }));
-            setLeads(initialLeads);
+            // Leads are now persisted to DB via syncContactsToSupabase
+            // SalesKanban loads them directly from the deals table
         }
         if (!isInitial) toast.success('Atualizado', { id: 'refresh-chats' });
       } catch (e: any) {
