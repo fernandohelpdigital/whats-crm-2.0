@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Check } from 'lucide-react';
+import { Button, Input } from './ui/Shared';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { Instance } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -27,6 +27,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [apiKeyInputs, setApiKeyInputs] = useState<Record<string, string>>({});
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -85,6 +87,33 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
     }
   };
 
+  const handleSaveApiKey = async (userId: string) => {
+    const apiKey = apiKeyInputs[userId];
+    if (apiKey === undefined || apiKey.trim() === '') {
+      toast.error('Informe a API Key');
+      return;
+    }
+    setActionLoading(userId);
+    try {
+      const res = await supabase.functions.invoke('manage-user-roles', {
+        body: {
+          action: 'assign_instance',
+          user_id: userId,
+          api_key: apiKey.trim(),
+        },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success('API Key salva com sucesso!');
+      setExpandedUser(null);
+      setApiKeyInputs(prev => ({ ...prev, [userId]: '' }));
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao salvar API Key');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filtered = users.filter(u =>
     u.display_name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -135,86 +164,129 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
               {filtered.map(u => {
                 const isAdmin = u.roles.includes('admin');
                 const isAssigning = assigningUser === u.id;
+                const isExpanded = expandedUser === u.id;
                 return (
-                  <tr key={u.id} className="hover:bg-primary/[0.02] transition-colors">
-                    <td className="px-4 py-4">
-                      <div className="font-bold text-foreground">{u.display_name}</div>
-                      <div className="text-xs text-muted-foreground">{u.email}</div>
-                    </td>
-                    <td className="px-4 py-4">
-                      {isAssigning ? (
-                        <div className="flex flex-col gap-1">
-                          <select
-                            className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                            defaultValue={u.instance_name || ''}
-                            onChange={e => handleAssignInstance(u.id, e.target.value || null)}
-                          >
-                            <option value="">— Nenhuma —</option>
-                            {instanceNames.map(name => (
-                              <option key={name} value={name}>{name}</option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={() => setAssigningUser(null)}
-                            className="text-[10px] text-muted-foreground hover:text-foreground"
-                          >
-                            Cancelar
-                          </button>
+                  <React.Fragment key={u.id}>
+                    <tr className="hover:bg-primary/[0.02] transition-colors">
+                      <td className="px-4 py-4">
+                        <div className="font-bold text-foreground">{u.display_name}</div>
+                        <div className="text-xs text-muted-foreground">{u.email}</div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {isAssigning ? (
+                          <div className="flex flex-col gap-1">
+                            <select
+                              className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              defaultValue={u.instance_name || ''}
+                              onChange={e => handleAssignInstance(u.id, e.target.value || null)}
+                            >
+                              <option value="">— Nenhuma —</option>
+                              {instanceNames.map(name => (
+                                <option key={name} value={name}>{name}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => setAssigningUser(null)}
+                              className="text-[10px] text-muted-foreground hover:text-foreground"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-mono ${u.instance_name ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
+                              {u.instance_name || '— Sem instância —'}
+                            </span>
+                            <button
+                              onClick={() => setAssigningUser(u.id)}
+                              className="text-primary hover:text-primary/80 transition-colors"
+                              title="Associar instância"
+                            >
+                              <Link2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          isAdmin
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted/30 text-muted-foreground'
+                        }`}>
+                          {isAdmin ? <ShieldCheck className="w-3 h-3" /> : null}
+                          {isAdmin ? 'Admin' : 'Usuário'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-xs text-muted-foreground">
+                        {u.last_sign_in_at
+                          ? new Date(u.last_sign_in_at).toLocaleDateString('pt-BR')
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {actionLoading === u.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          ) : (
+                            <>
+                              {isAdmin ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRoleChange(u.id, 'demote')}
+                                  className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
+                                >
+                                  <ShieldOff className="w-3 h-3" /> Remover
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRoleChange(u.id, 'promote')}
+                                  className="text-xs gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                                >
+                                  <ShieldCheck className="w-3 h-3" /> Admin
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setExpandedUser(isExpanded ? null : u.id)}
+                                className="text-xs gap-1 border-border"
+                                title="Configurar API Key"
+                              >
+                                <Key className="w-3 h-3" />
+                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </Button>
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-mono ${u.instance_name ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
-                            {u.instance_name || '— Sem instância —'}
-                          </span>
-                          <button
-                            onClick={() => setAssigningUser(u.id)}
-                            className="text-primary hover:text-primary/80 transition-colors"
-                            title="Associar instância"
-                          >
-                            <Link2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        isAdmin
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-muted/30 text-muted-foreground'
-                      }`}>
-                        {isAdmin ? <ShieldCheck className="w-3 h-3" /> : null}
-                        {isAdmin ? 'Admin' : 'Usuário'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center text-xs text-muted-foreground">
-                      {u.last_sign_in_at
-                        ? new Date(u.last_sign_in_at).toLocaleDateString('pt-BR')
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      {actionLoading === u.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin mx-auto text-primary" />
-                      ) : isAdmin ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRoleChange(u.id, 'demote')}
-                          className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
-                        >
-                          <ShieldOff className="w-3 h-3" /> Remover Admin
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRoleChange(u.id, 'promote')}
-                          className="text-xs gap-1 text-primary border-primary/30 hover:bg-primary/5"
-                        >
-                          <ShieldCheck className="w-3 h-3" /> Promover
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-3 bg-muted/10">
+                          <div className="flex items-center gap-3 max-w-lg">
+                            <Key className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <Input
+                              type="password"
+                              placeholder="Cole a API Key da Evolution API"
+                              value={apiKeyInputs[u.id] || ''}
+                              onChange={e => setApiKeyInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
+                              className="h-9 font-mono text-xs flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveApiKey(u.id)}
+                              disabled={actionLoading === u.id}
+                              className="bg-primary text-white gap-1 text-xs shrink-0"
+                            >
+                              <Save className="w-3 h-3" /> Salvar
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
               {filtered.length === 0 && (
