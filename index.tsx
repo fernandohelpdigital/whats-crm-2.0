@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { SystemBranding } from './types';
+import { AuthProvider } from './src/hooks/useAuth';
 
 // --- THEME CONTEXT ---
 type Theme = 'dark' | 'light';
@@ -14,7 +15,6 @@ const ThemeContext = createContext<ThemeContextType>({ theme: 'light', toggleThe
 export const useTheme = () => useContext(ThemeContext);
 
 // --- BRANDING CONTEXT ---
-// COR LARANJA DA HELPDIGITAL: #F05A22 (ou próximo)
 const DEFAULT_BRANDING: SystemBranding = {
     systemName: 'HelpDigital CRM',
     primaryColor: '#F05A22' 
@@ -34,21 +34,18 @@ const BrandingContext = createContext<BrandingContextType>({
 
 export const useBranding = () => useContext(BrandingContext);
 
-// Helper: Convert Hex to HSL (Tailwind variable format)
+// Helper: Convert Hex to HSL
 const hexToHSL = (hex: string): string => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!result) return '16 88% 54%'; // Default Orange fallback
-
+    if (!result) return '16 88% 54%';
     let r = parseInt(result[1], 16);
     let g = parseInt(result[2], 16);
     let b = parseInt(result[3], 16);
-
     r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     let h = 0, s, l = (max + min) / 2;
-
     if (max === min) {
-        h = s = 0; // achromatic
+        h = s = 0;
     } else {
         const d = max - min;
         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -59,21 +56,14 @@ const hexToHSL = (hex: string): string => {
         }
         h /= 6;
     }
-
-    // Return format: "H S% L%" (No hsl() wrapper, as tailwind adds it)
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Theme State
   const [theme, setTheme] = useState<Theme>('light');
-  
-  // Branding State
   const [branding, setBranding] = useState<SystemBranding>(DEFAULT_BRANDING);
 
-  // Load Initial States
   useEffect(() => {
-    // 1. Theme
     const savedTheme = localStorage.getItem('theme') as Theme;
     if (savedTheme) {
       setTheme(savedTheme);
@@ -83,7 +73,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       document.documentElement.classList.add('dark');
     }
 
-    // 2. Branding
     const savedBranding = localStorage.getItem('evo_branding');
     if (savedBranding) {
         try {
@@ -100,11 +89,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const applyBrandingColors = (hexColor: string) => {
       const hsl = hexToHSL(hexColor);
-      // Inject into :root for global access by Tailwind
       document.documentElement.style.setProperty('--primary', hsl);
       document.documentElement.style.setProperty('--ring', hsl);
-      
-      // Update Wa variables to match theme if desired, or keep specific for chat bubbles
       document.documentElement.style.setProperty('--wa-teal', hsl);
   };
 
@@ -119,15 +105,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const updated = { ...branding, ...newConfig };
       setBranding(updated);
       localStorage.setItem('evo_branding', JSON.stringify(updated));
-      
-      if (newConfig.primaryColor) {
-          applyBrandingColors(newConfig.primaryColor);
-      }
-      
-      // Update document title dynamically
-      if (newConfig.systemName) {
-          document.title = newConfig.systemName;
-      }
+      if (newConfig.primaryColor) applyBrandingColors(newConfig.primaryColor);
+      if (newConfig.systemName) document.title = newConfig.systemName;
   };
 
   const resetBranding = () => {
@@ -152,8 +131,10 @@ if (!rootElement) throw new Error('Failed to find the root element');
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AppProvider>
-      <App />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

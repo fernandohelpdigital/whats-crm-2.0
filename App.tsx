@@ -1,36 +1,29 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { AuthConfig } from './types';
-import LoginScreen from './components/LoginScreen';
+import { useAuth } from './src/hooks/useAuth';
+import AuthScreen from './components/AuthScreen';
 import ChatDashboard from './components/ChatDashboard';
 import { Toaster } from 'react-hot-toast';
-// import { disconnectSocket } from './services/socketClient'; // Socket Removed
+import { Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
+  const { user, profile, loading } = useAuth();
 
-  // Check for existing session on mount
-  useEffect(() => {
-    const savedConfig = localStorage.getItem('evo_auth_config');
-    if (savedConfig) {
-      try {
-        setAuthConfig(JSON.parse(savedConfig));
-      } catch (e) {
-        localStorage.removeItem('evo_auth_config');
-      }
-    }
-  }, []);
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const handleLoginSuccess = (config: AuthConfig) => {
-    localStorage.setItem('evo_auth_config', JSON.stringify(config));
-    setAuthConfig(config);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('evo_auth_config');
-    setAuthConfig(null);
-    // disconnectSocket(); // Clean up socket connection (Removed)
-  };
+  // Build AuthConfig from profile for Evolution API compatibility
+  const authConfig: AuthConfig | null = user && profile?.instance_name ? {
+    instanceName: profile.instance_name,
+    apiKey: '', // API key managed server-side or via settings
+    baseUrl: profile.base_url || 'https://api.automacaohelp.com.br',
+  } : null;
 
   return (
     <div className="h-screen w-full bg-background text-foreground transition-colors duration-300">
@@ -43,10 +36,10 @@ const App: React.FC = () => {
         },
       }} />
       
-      {authConfig ? (
-        <ChatDashboard config={authConfig} onLogout={handleLogout} />
+      {user ? (
+        <ChatDashboard config={authConfig} onLogout={() => {}} />
       ) : (
-        <LoginScreen onLoginSuccess={handleLoginSuccess} />
+        <AuthScreen />
       )}
     </div>
   );
