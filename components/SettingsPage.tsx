@@ -28,6 +28,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
   const [instanceName, setInstanceName] = useState(profile?.instance_name || '');
   const [baseUrl, setBaseUrl] = useState(profile?.base_url || 'https://api.automacaohelp.com.br');
+  const [apiKey, setApiKey] = useState(profile?.api_key || '');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // States Tab Connection
@@ -46,6 +47,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
       setDisplayName(profile.display_name || '');
       setInstanceName(profile.instance_name || '');
       setBaseUrl(profile.base_url || 'https://api.automacaohelp.com.br');
+      setApiKey(profile.api_key || '');
     }
   }, [profile]);
 
@@ -59,6 +61,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
           display_name: displayName,
           instance_name: instanceName,
           base_url: baseUrl,
+          api_key: apiKey,
         })
         .eq('id', user.id);
       
@@ -224,7 +227,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                     placeholder="https://api.automacaohelp.com.br"
                   />
                 </div>
-                <Button 
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">API Key (Evolution API)</label>
+                  <Input 
+                    type="password"
+                    value={apiKey} 
+                    onChange={e => setApiKey(e.target.value)} 
+                    className="h-11 font-mono" 
+                    placeholder="Sua chave de API"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Chave de autenticação para acessar a Evolution API.</p>
+                </div>
+                <Button
                   onClick={handleSaveProfile} 
                   disabled={savingProfile}
                   className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 gap-2"
