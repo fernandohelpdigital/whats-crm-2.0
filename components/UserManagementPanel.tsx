@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save } from 'lucide-react';
-import { Instance } from '../types';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock } from 'lucide-react';
+import { Instance, FeatureFlags } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
 
@@ -21,6 +21,14 @@ interface UserManagementPanelProps {
   adminBaseUrl: string;
 }
 
+const DEFAULT_FLAGS: FeatureFlags = {
+  dashboard: true,
+  kanban: true,
+  proposals: true,
+  followup: true,
+  chat: true,
+};
+
 const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, adminBaseUrl }) => {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +37,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
   const [assigningUser, setAssigningUser] = useState<string | null>(null);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [apiKeyInputs, setApiKeyInputs] = useState<Record<string, string>>({});
+  const [userFlagsMap, setUserFlagsMap] = useState<Record<string, FeatureFlags & { id?: string }>>({});
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -37,7 +46,34 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
         body: { action: 'list' },
       });
       if (res.error) throw res.error;
-      setUsers(res.data || []);
+      const usersData = res.data || [];
+      setUsers(usersData);
+
+      // Load user feature flags
+      const { data: flagsData } = await supabase.functions.invoke('manage-user-roles', {
+        body: { action: 'list_user_flags' },
+      });
+      
+      const fMap: Record<string, FeatureFlags & { id?: string }> = {};
+      if (flagsData && Array.isArray(flagsData)) {
+        flagsData.forEach((f: any) => {
+          fMap[f.user_id] = {
+            id: f.id,
+            dashboard: f.dashboard ?? true,
+            kanban: f.kanban ?? true,
+            proposals: f.proposals ?? true,
+            followup: f.followup ?? true,
+            chat: f.chat ?? true,
+          };
+        });
+      }
+      // Ensure all users have flags entry
+      usersData.forEach((u: ManagedUser) => {
+        if (!fMap[u.id]) {
+          fMap[u.id] = { ...DEFAULT_FLAGS };
+        }
+      });
+      setUserFlagsMap(fMap);
     } catch (e: any) {
       toast.error('Erro ao carregar usuários: ' + (e.message || e));
     } finally {
@@ -114,6 +150,45 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
     }
   };
 
+  const toggleUserFeature = (userId: string, feature: keyof FeatureFlags) => {
+    setUserFlagsMap(prev => {
+      const current = prev[userId] || { ...DEFAULT_FLAGS };
+      return { ...prev, [userId]: { ...current, [feature]: !current[feature] } };
+    });
+  };
+
+  const handleSaveUserFlags = async (userId: string) => {
+    setActionLoading(userId);
+    try {
+      const flags = userFlagsMap[userId];
+      if (!flags) return;
+      const { id, ...flagValues } = flags;
+
+      const res = await supabase.functions.invoke('manage-user-roles', {
+        body: {
+          action: 'save_user_flags',
+          user_id: userId,
+          flags: flagValues,
+        },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      
+      // Update local state with returned id
+      if (res.data?.id) {
+        setUserFlagsMap(prev => ({
+          ...prev,
+          [userId]: { ...flagValues, id: res.data.id },
+        }));
+      }
+      toast.success('Permissões salvas!');
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao salvar permissões');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filtered = users.filter(u =>
     u.display_name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -156,7 +231,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                 <th className="px-4 py-3 text-left tracking-widest">Usuário</th>
                 <th className="px-4 py-3 text-left tracking-widest">Instância</th>
                 <th className="px-4 py-3 text-center tracking-widest">Role</th>
-                <th className="px-4 py-3 text-center tracking-widest">Último Login</th>
+                <th className="px-4 py-3 text-center tracking-widest">Módulos</th>
                 <th className="px-4 py-3 text-center tracking-widest">Ações</th>
               </tr>
             </thead>
@@ -165,6 +240,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                 const isAdmin = u.roles.includes('admin');
                 const isAssigning = assigningUser === u.id;
                 const isExpanded = expandedUser === u.id;
+                const flags = userFlagsMap[u.id] || { ...DEFAULT_FLAGS };
                 return (
                   <React.Fragment key={u.id}>
                     <tr className="hover:bg-primary/[0.02] transition-colors">
@@ -217,10 +293,22 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                           {isAdmin ? 'Admin' : 'Usuário'}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-center text-xs text-muted-foreground">
-                        {u.last_sign_in_at
-                          ? new Date(u.last_sign_in_at).toLocaleDateString('pt-BR')
-                          : '—'}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <ModuleToggle active={flags.dashboard} icon={<LayoutDashboard className="w-3.5 h-3.5" />} label="Dash" onClick={() => toggleUserFeature(u.id, 'dashboard')} />
+                          <ModuleToggle active={flags.chat} icon={<MessageSquare className="w-3.5 h-3.5" />} label="Chat" onClick={() => toggleUserFeature(u.id, 'chat')} />
+                          <ModuleToggle active={flags.kanban} icon={<Kanban className="w-3.5 h-3.5" />} label="Kanban" onClick={() => toggleUserFeature(u.id, 'kanban')} />
+                          <ModuleToggle active={flags.proposals} icon={<Zap className="w-3.5 h-3.5" />} label="Vendas" onClick={() => toggleUserFeature(u.id, 'proposals')} />
+                          <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-3.5 h-3.5" />} label="Follow" onClick={() => toggleUserFeature(u.id, 'followup')} />
+                          <button
+                            onClick={() => handleSaveUserFlags(u.id)}
+                            disabled={actionLoading === u.id}
+                            className="ml-1 p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            title="Salvar permissões"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-1.5">
@@ -303,5 +391,22 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
     </div>
   );
 };
+
+const ModuleToggle = ({ active, icon, label, onClick }: any) => (
+  <button
+    onClick={onClick}
+    title={label}
+    className={`
+      flex flex-col items-center justify-center gap-0.5 w-11 h-11 p-1 rounded-lg border transition-all duration-200
+      ${active
+        ? 'bg-primary/10 border-primary text-primary'
+        : 'bg-muted/10 border-transparent text-muted-foreground opacity-30 grayscale'
+      }
+    `}
+  >
+    {icon}
+    <span className="text-[6px] font-black uppercase tracking-widest leading-none">{label}</span>
+  </button>
+);
 
 export default UserManagementPanel;

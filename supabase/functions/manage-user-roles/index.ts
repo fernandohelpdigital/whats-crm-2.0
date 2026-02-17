@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { action, user_id, instance_name, api_key, base_url } = await req.json();
+    const { action, user_id, instance_name, api_key, base_url, flags } = await req.json();
 
     if (action === "list") {
       const { data: users, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
@@ -133,6 +133,41 @@ Deno.serve(async (req) => {
       const { error } = await adminClient.from("profiles").update(updateData).eq("id", user_id);
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "list_user_flags") {
+      const { data, error } = await adminClient.from("user_feature_flags").select("*");
+      if (error) throw error;
+      return new Response(JSON.stringify(data || []), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "save_user_flags") {
+      if (!user_id) throw new Error("user_id required");
+      const flagValues = flags || {};
+      
+      // Upsert user feature flags
+      const { data: existing } = await adminClient
+        .from("user_feature_flags")
+        .select("id")
+        .eq("user_id", user_id)
+        .single();
+      
+      if (existing) {
+        const { error } = await adminClient
+          .from("user_feature_flags")
+          .update(flagValues)
+          .eq("user_id", user_id);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, id: existing.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } else {
+        const { data, error } = await adminClient
+          .from("user_feature_flags")
+          .insert({ user_id, ...flagValues })
+          .select("id")
+          .single();
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, id: data?.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

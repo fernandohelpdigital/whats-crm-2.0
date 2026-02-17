@@ -311,6 +311,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feature_flags: {
+        Row: {
+          chat: boolean
+          created_at: string
+          dashboard: boolean
+          followup: boolean
+          id: string
+          kanban: boolean
+          proposals: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat?: boolean
+          created_at?: string
+          dashboard?: boolean
+          followup?: boolean
+          id?: string
+          kanban?: boolean
+          proposals?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chat?: boolean
+          created_at?: string
+          dashboard?: boolean
+          followup?: boolean
+          id?: string
+          kanban?: boolean
+          proposals?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
