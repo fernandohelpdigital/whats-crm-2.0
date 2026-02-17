@@ -1,0 +1,2 @@
+-- Add unique constraint on deals for phone+user_id to support upsert of WhatsApp leads
+CREATE UNIQUE INDEX IF NOT EXISTS deals_phone_user_id_unique ON public.deals (phone, user_id) WHERE phone IS NOT NULL;
