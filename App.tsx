@@ -21,7 +21,7 @@ const App: React.FC = () => {
   // Build AuthConfig from profile for Evolution API compatibility
   const authConfig: AuthConfig | null = user && profile?.instance_name ? {
     instanceName: profile.instance_name,
-    apiKey: '', // API key managed server-side or via settings
+    apiKey: profile.api_key || '',
     baseUrl: profile.base_url || 'https://api.automacaohelp.com.br',
   } : null;
 
