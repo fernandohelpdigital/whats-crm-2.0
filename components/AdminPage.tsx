@@ -42,7 +42,20 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
   const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const apiInstances = await fetchAllInstances(config);
+            // Fetch instances via edge function (server-side, uses stored API keys)
+            let apiInstances: Instance[] = [];
+            try {
+              const instancesRes = await supabase.functions.invoke('manage-user-roles', {
+                body: { action: 'list_instances', base_url: config.baseUrl || 'https://api.automacaohelp.com.br' },
+              });
+              if (!instancesRes.error && Array.isArray(instancesRes.data)) {
+                apiInstances = instancesRes.data;
+              } else if (instancesRes.data?.error) {
+                console.warn("Instances warning:", instancesRes.data.error);
+              }
+            } catch (e: any) {
+              console.warn("Could not fetch instances:", e.message);
+            }
             setInstances(apiInstances);
 
             // Load feature flags from Supabase
