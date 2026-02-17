@@ -10,7 +10,8 @@ import FollowUpCalendar from './FollowUpCalendar';
 import SettingsPage from './SettingsPage';
 import AdminPage from './AdminPage';
 import ChatPage from './ChatPage';
-import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn } from 'lucide-react';
+import ContactsPage from './ContactsPage';
+import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn, Users } from 'lucide-react';
 import { Button, Avatar } from './ui/Shared';
 import { useTheme, useBranding } from '../index';
 import { useAuth } from '../src/hooks/useAuth';
@@ -42,7 +43,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts'>('dashboard');
   
   // Feature Flags State
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FLAGS);
@@ -290,17 +291,25 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
          {/* NAVIGATION */}
          <div className="flex-1 py-6 px-3 flex flex-col gap-2 overflow-y-auto scrollbar-none">
              
-             {features.dashboard && (
-                 <SidebarButton 
-                    active={currentView === 'dashboard'}
-                    icon={<LayoutDashboard className="h-5 w-5" />}
-                    label="Dashboard"
-                    expanded={isExpanded}
-                    onClick={() => { setCurrentView('dashboard'); closeMobileMenu(); }}
-                 />
-             )}
-             
-             {features.chat && (
+              {features.dashboard && (
+                  <SidebarButton 
+                     active={currentView === 'dashboard'}
+                     icon={<LayoutDashboard className="h-5 w-5" />}
+                     label="Dashboard"
+                     expanded={isExpanded}
+                     onClick={() => { setCurrentView('dashboard'); closeMobileMenu(); }}
+                  />
+              )}
+
+              <SidebarButton 
+                 active={currentView === 'contacts'}
+                 icon={<Users className="h-5 w-5" />}
+                 label="Contatos"
+                 expanded={isExpanded}
+                 onClick={() => { setCurrentView('contacts'); closeMobileMenu(); }}
+              />
+              
+              {features.chat && (
                  <SidebarButton 
                     active={currentView === 'chat'}
                     icon={<MessageSquare className="h-5 w-5" />}
@@ -409,8 +418,10 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         <div className="flex-1 relative z-10 overflow-hidden flex flex-col">
             <div key={currentView} className="h-full w-full flex flex-col animate-slide-up">
                 {currentView === 'dashboard' && features.dashboard ? (
-                    <Dashboard leads={leads} onOpenMenu={() => setIsMobileMenuOpen(true)} />
-                ) : currentView === 'chat' && features.chat && config ? (
+                     <Dashboard leads={leads} onOpenMenu={() => setIsMobileMenuOpen(true)} />
+                 ) : currentView === 'contacts' ? (
+                     <ContactsPage onOpenMenu={() => setIsMobileMenuOpen(true)} />
+                 ) : currentView === 'chat' && features.chat && config ? (
                     <ChatPage 
                         contacts={contacts} 
                         config={config} 
