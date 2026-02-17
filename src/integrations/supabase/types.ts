@@ -14,16 +14,309 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      deals: {
+        Row: {
+          address: string | null
+          avatar_url: string | null
+          average_bill_value: number | null
+          budget_presented: boolean | null
+          city: string | null
+          company: string
+          complement: string | null
+          contact_id: string | null
+          created_at: string
+          date: string | null
+          email: string | null
+          id: string
+          neighborhood: string | null
+          notes: string | null
+          number_address: string | null
+          phone: string | null
+          source: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["deal_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+          value: number | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          avatar_url?: string | null
+          average_bill_value?: number | null
+          budget_presented?: boolean | null
+          city?: string | null
+          company?: string
+          complement?: string | null
+          contact_id?: string | null
+          created_at?: string
+          date?: string | null
+          email?: string | null
+          id?: string
+          neighborhood?: string | null
+          notes?: string | null
+          number_address?: string | null
+          phone?: string | null
+          source?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["deal_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+          value?: number | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          avatar_url?: string | null
+          average_bill_value?: number | null
+          budget_presented?: boolean | null
+          city?: string | null
+          company?: string
+          complement?: string | null
+          contact_id?: string | null
+          created_at?: string
+          date?: string | null
+          email?: string | null
+          id?: string
+          neighborhood?: string | null
+          notes?: string | null
+          number_address?: string | null
+          phone?: string | null
+          source?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["deal_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      follow_up_tasks: {
+        Row: {
+          avatar_url: string | null
+          contact_id: string | null
+          contact_name: string
+          created_at: string
+          id: string
+          message: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["task_status"]
+          type: Database["public"]["Enums"]["task_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          contact_id?: string | null
+          contact_name: string
+          created_at?: string
+          id?: string
+          message?: string
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["task_status"]
+          type?: Database["public"]["Enums"]["task_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          contact_id?: string | null
+          contact_name?: string
+          created_at?: string
+          id?: string
+          message?: string
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          type?: Database["public"]["Enums"]["task_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      instance_feature_flags: {
+        Row: {
+          chat: boolean | null
+          dashboard: boolean | null
+          followup: boolean | null
+          id: string
+          instance_name: string
+          kanban: boolean | null
+          proposals: boolean | null
+        }
+        Insert: {
+          chat?: boolean | null
+          dashboard?: boolean | null
+          followup?: boolean | null
+          id?: string
+          instance_name: string
+          kanban?: boolean | null
+          proposals?: boolean | null
+        }
+        Update: {
+          chat?: boolean | null
+          dashboard?: boolean | null
+          followup?: boolean | null
+          id?: string
+          instance_name?: string
+          kanban?: boolean | null
+          proposals?: boolean | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          base_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          instance_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          base_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          instance_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          base_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          instance_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      proposals: {
+        Row: {
+          address_data: Json | null
+          contact_name: string | null
+          contact_number: string | null
+          created_at: string
+          description: string | null
+          hours_estimated: number | null
+          id: string
+          monthly_cost: number | null
+          project_title: string | null
+          service_type: string | null
+          setup_cost: number | null
+          tech_stack: string | null
+          timeline: string | null
+          user_id: string
+        }
+        Insert: {
+          address_data?: Json | null
+          contact_name?: string | null
+          contact_number?: string | null
+          created_at?: string
+          description?: string | null
+          hours_estimated?: number | null
+          id?: string
+          monthly_cost?: number | null
+          project_title?: string | null
+          service_type?: string | null
+          setup_cost?: number | null
+          tech_stack?: string | null
+          timeline?: string | null
+          user_id: string
+        }
+        Update: {
+          address_data?: Json | null
+          contact_name?: string | null
+          contact_number?: string | null
+          created_at?: string
+          description?: string | null
+          hours_estimated?: number | null
+          id?: string
+          monthly_cost?: number | null
+          project_title?: string | null
+          service_type?: string | null
+          setup_cost?: number | null
+          tech_stack?: string | null
+          timeline?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      system_branding: {
+        Row: {
+          id: string
+          primary_color: string
+          system_name: string
+        }
+        Insert: {
+          id?: string
+          primary_color?: string
+          system_name?: string
+        }
+        Update: {
+          id?: string
+          primary_color?: string
+          system_name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      deal_status:
+        | "lead_capturado"
+        | "contato_inicial"
+        | "diagnostico_levantamento"
+        | "proposta_construcao"
+        | "proposta_enviada"
+        | "negociacao"
+        | "fechado_aprovado"
+        | "em_execucao"
+        | "entrega_homologacao"
+        | "pos_venda"
+        | "em_followup"
+        | "perdido"
+      task_status: "pending" | "sent" | "cancelled"
+      task_type: "whatsapp" | "call" | "email"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +443,24 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      deal_status: [
+        "lead_capturado",
+        "contato_inicial",
+        "diagnostico_levantamento",
+        "proposta_construcao",
+        "proposta_enviada",
+        "negociacao",
+        "fechado_aprovado",
+        "em_execucao",
+        "entrega_homologacao",
+        "pos_venda",
+        "em_followup",
+        "perdido",
+      ],
+      task_status: ["pending", "sent", "cancelled"],
+      task_type: ["whatsapp", "call", "email"],
+    },
   },
 } as const
