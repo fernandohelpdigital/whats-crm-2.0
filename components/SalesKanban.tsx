@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Deal, DealStatus, Contact, AuthConfig } from '../types';
 import { Button, Avatar, Input } from './ui/Shared';
 import { 
@@ -25,6 +25,8 @@ import { fetchProfilePictureUrl } from '../services/evolutionClient';
 import toast from 'react-hot-toast';
 import ChatArea from './ChatArea';
 import axios from 'axios';
+import { supabase } from '@/src/integrations/supabase/client';
+import { useAuth } from '../src/hooks/useAuth';
 
 interface SalesKanbanProps {
   leads: Deal[];
@@ -124,11 +126,61 @@ const KanbanCard = ({ lead, config, onDragStart, draggedLeadId, onEdit, onViewCh
 };
 
 const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, onOpenMenu, config }) => {
+  const { user } = useAuth();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingLead, setEditingLead] = useState<Deal | null>(null);
   const [chattingLead, setChattingLead] = useState<Deal | null>(null);
   const [loadingCep, setLoadingCep] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load deals from Supabase
+  const loadDeals = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const mapped: Deal[] = (data || []).map(d => ({
+        id: d.id,
+        title: d.title,
+        company: d.company,
+        tags: d.tags || [],
+        value: Number(d.value) || 0,
+        status: d.status as DealStatus,
+        date: new Date(d.date || d.created_at),
+        contactId: d.contact_id || undefined,
+        avatarUrl: d.avatar_url || undefined,
+        phone: d.phone || undefined,
+        email: d.email || undefined,
+        zipCode: d.zip_code || undefined,
+        address: d.address || undefined,
+        numberAddress: d.number_address || undefined,
+        complement: d.complement || undefined,
+        neighborhood: d.neighborhood || undefined,
+        city: d.city || undefined,
+        state: d.state || undefined,
+        source: d.source || undefined,
+        averageBillValue: Number(d.average_bill_value) || undefined,
+        budgetPresented: d.budget_presented || false,
+        notes: d.notes || undefined,
+      }));
+      setLeads(mapped);
+    } catch (e: any) {
+      console.error("Erro ao carregar deals:", e);
+      toast.error("Erro ao carregar deals");
+    } finally {
+      setLoading(false);
+    }
+  }, [user, setLeads]);
+
+  useEffect(() => {
+    loadDeals();
+  }, [loadDeals]);
 
   const filteredLeads = leads.filter(lead => {
     const term = searchTerm.toLowerCase();
@@ -144,20 +196,63 @@ const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, on
     e.preventDefault(); 
   };
 
-  const handleDrop = (e: React.DragEvent, targetStatus: DealStatus) => {
+  const handleDrop = async (e: React.DragEvent, targetStatus: DealStatus) => {
     e.preventDefault();
     if (!draggedLeadId) return;
+    
+    // Optimistic update
     setLeads(leads.map(lead => lead.id === draggedLeadId ? { ...lead, status: targetStatus } : lead));
     setDraggedLeadId(null);
-    toast.success(`Lead movido.`);
+    
+    const { error } = await supabase
+      .from('deals')
+      .update({ status: targetStatus })
+      .eq('id', draggedLeadId);
+    
+    if (error) {
+      toast.error("Erro ao mover lead");
+      loadDeals(); // Revert
+    } else {
+      toast.success(`Lead movido.`);
+    }
   };
 
-  const handleUpdateLeadForm = (e: React.FormEvent) => {
+  const handleUpdateLeadForm = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editingLead) return;
+      
+      // Optimistic update
       setLeads(leads.map(l => l.id === editingLead.id ? editingLead : l));
       setEditingLead(null);
-      toast.success("Informações atualizadas!");
+      
+      const { error } = await supabase
+        .from('deals')
+        .update({
+          title: editingLead.title,
+          company: editingLead.company,
+          tags: editingLead.tags,
+          value: editingLead.value,
+          status: editingLead.status,
+          email: editingLead.email || null,
+          zip_code: editingLead.zipCode || null,
+          address: editingLead.address || null,
+          number_address: editingLead.numberAddress || null,
+          complement: editingLead.complement || null,
+          neighborhood: editingLead.neighborhood || null,
+          city: editingLead.city || null,
+          state: editingLead.state || null,
+          average_bill_value: editingLead.averageBillValue || null,
+          budget_presented: editingLead.budgetPresented || false,
+          notes: editingLead.notes || null,
+        })
+        .eq('id', editingLead.id);
+      
+      if (error) {
+        toast.error("Erro ao salvar");
+        loadDeals();
+      } else {
+        toast.success("Informações atualizadas!");
+      }
   };
 
   const handleToggleTag = (tag: string) => {
@@ -202,6 +297,14 @@ const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, on
           }
       }
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-[#f0f2f5] dark:bg-[#0b141a] overflow-hidden relative">

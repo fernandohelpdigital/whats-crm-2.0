@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthConfig } from '../types';
 import { Button, Card, Input } from './ui/Shared';
-import { QrCode, Wifi, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings as SettingsIcon, Terminal, Activity, Trash2, PauseCircle, PlayCircle } from 'lucide-react';
+import { QrCode, Wifi, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings as SettingsIcon, Terminal, Activity, Trash2, PauseCircle, PlayCircle, Save, User } from 'lucide-react';
 import { connectInstance, fetchConnectionState } from '../services/evolutionClient';
 import { getSocket, subscribeToAllEvents } from '../services/socketClient';
 import toast from 'react-hot-toast';
+import { supabase } from '@/src/integrations/supabase/client';
+import { useAuth } from '../src/hooks/useAuth';
 
 interface SettingsPageProps {
   config: AuthConfig;
@@ -19,8 +21,15 @@ interface LogEntry {
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
-  const [activeTab, setActiveTab] = useState<'connection' | 'debug'>('connection');
+  const { user, profile, refreshProfile } = useAuth();
+  const [activeTab, setActiveTab] = useState<'profile' | 'connection' | 'debug'>('profile');
   
+  // Profile form
+  const [displayName, setDisplayName] = useState(profile?.display_name || '');
+  const [instanceName, setInstanceName] = useState(profile?.instance_name || '');
+  const [baseUrl, setBaseUrl] = useState(profile?.base_url || 'https://api.automacaohelp.com.br');
+  const [savingProfile, setSavingProfile] = useState(false);
+
   // States Tab Connection
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,33 +41,57 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
   const [isPaused, setIsPaused] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || '');
+      setInstanceName(profile.instance_name || '');
+      setBaseUrl(profile.base_url || 'https://api.automacaohelp.com.br');
+    }
+  }, [profile]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: displayName,
+          instance_name: instanceName,
+          base_url: baseUrl,
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      await refreshProfile?.();
+      toast.success("Perfil atualizado! Recarregue a página para aplicar as mudanças de instância.");
+    } catch (e: any) {
+      toast.error("Erro ao salvar perfil: " + e.message);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const checkStatus = async () => {
+      if (!config?.instanceName) return;
       try {
           const statusData = await fetchConnectionState(config);
           const state = statusData?.instance?.state;
-
-          if (state === 'open') {
-              setConnectionStatus('connected');
-              setQrCode(null);
-          } else if (state === 'connecting') {
-              setConnectionStatus('connecting');
-          } else {
-              setConnectionStatus('disconnected');
-          }
+          if (state === 'open') { setConnectionStatus('connected'); setQrCode(null); }
+          else if (state === 'connecting') { setConnectionStatus('connecting'); }
+          else { setConnectionStatus('disconnected'); }
       } catch (error) {
           console.error("Falha ao checar status:", error);
           setConnectionStatus('disconnected');
       }
   };
 
-  // Check status on mount
   useEffect(() => {
-      checkStatus();
+      if (config?.instanceName) checkStatus();
   }, [config]);
 
   // Socket Debug Logic
   useEffect(() => {
-    // Atualiza status do socket periodicamente
     const interval = setInterval(() => {
         const sock = getSocket();
         if (sock) {
@@ -70,27 +103,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
         }
     }, 1000);
 
-    // Subscreve aos logs
     const unsubscribe = subscribeToAllEvents((event, data) => {
         if (isPaused) return;
-        
         const newLog: LogEntry = {
             id: Math.random().toString(36).substr(2, 9),
             timestamp: new Date().toLocaleTimeString(),
             event,
             data
         };
-
-        setLogs(prev => [newLog, ...prev].slice(0, 50)); // Mantém apenas os ultimos 50 logs
+        setLogs(prev => [newLog, ...prev].slice(0, 50));
     });
 
-    return () => {
-        clearInterval(interval);
-        unsubscribe();
-    };
+    return () => { clearInterval(interval); unsubscribe(); };
   }, [isPaused]);
 
   const handleGenerateQRCode = async () => {
+    if (!config?.instanceName) {
+      toast.error("Configure o nome da instância no perfil primeiro.");
+      return;
+    }
     setIsLoading(true);
     setQrCode(null);
     try {
@@ -99,20 +130,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
         setQrCode(data.base64);
         setConnectionStatus('connecting');
         toast.success("QR Code gerado com sucesso!");
-      } 
-      else if (data && (data.instance?.status === 'open' || data.instance?.state === 'open')) {
+      } else if (data && (data.instance?.status === 'open' || data.instance?.state === 'open')) {
          setConnectionStatus('connected');
          toast.success("Instância já está conectada!");
       } else {
          await checkStatus();
       }
     } catch (error: any) {
-      console.error(error);
       if (error.response?.data?.message?.includes('already connected') || error.message?.includes('connected')) {
           setConnectionStatus('connected');
           toast.success("WhatsApp já conectado!");
       } else {
-          toast.error("Erro ao gerar QR Code. Verifique o console.");
+          toast.error("Erro ao gerar QR Code.");
       }
     } finally {
       setIsLoading(false);
@@ -130,12 +159,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
             Configurações
             </h1>
             <p className="text-[#54656f] dark:text-[#8696a0] mt-1 text-sm">
-            Gerencie a conexão e monitore eventos em tempo real.
+            Gerencie seu perfil, conexão e monitore eventos.
             </p>
         </div>
         
-        {/* Tabs Switcher */}
+        {/* Tabs */}
         <div className="flex p-1 bg-white dark:bg-[#202c33] rounded-lg border border-border">
+            <button 
+                onClick={() => setActiveTab('profile')}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'bg-[#00a884] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+            >
+                <User className="w-4 h-4" /> Perfil
+            </button>
             <button 
                 onClick={() => setActiveTab('connection')}
                 className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'connection' ? 'bg-[#00a884] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
@@ -146,13 +181,63 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                 onClick={() => setActiveTab('debug')}
                 className={`px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2 ${activeTab === 'debug' ? 'bg-[#00a884] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
             >
-                <Terminal className="w-4 h-4" /> Debug WebSocket
+                <Terminal className="w-4 h-4" /> Debug
             </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'connection' ? (
+
+        {/* PROFILE TAB */}
+        {activeTab === 'profile' && (
+          <div className="flex justify-center pt-4">
+            <Card className="w-full max-w-2xl p-6 border-none shadow-md bg-white dark:bg-[#202c33] animate-slide-up">
+              <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" /> Dados do Perfil
+              </h2>
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Nome de Exibição</label>
+                  <Input 
+                    value={displayName} 
+                    onChange={e => setDisplayName(e.target.value)} 
+                    className="h-11" 
+                    placeholder="Seu nome"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Nome da Instância (Evolution API)</label>
+                  <Input 
+                    value={instanceName} 
+                    onChange={e => setInstanceName(e.target.value)} 
+                    className="h-11 font-mono" 
+                    placeholder="nome-da-instancia"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Identificador da sua instância na Evolution API.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">URL Base da API</label>
+                  <Input 
+                    value={baseUrl} 
+                    onChange={e => setBaseUrl(e.target.value)} 
+                    className="h-11 font-mono" 
+                    placeholder="https://api.automacaohelp.com.br"
+                  />
+                </div>
+                <Button 
+                  onClick={handleSaveProfile} 
+                  disabled={savingProfile}
+                  className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 gap-2"
+                >
+                  <Save className="w-4 h-4" /> {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* CONNECTION TAB */}
+        {activeTab === 'connection' && (
              <div className="flex justify-center pt-4">
                 <Card className="w-full max-w-2xl p-6 border-none shadow-md bg-white dark:bg-[#202c33] flex flex-col items-center text-center relative overflow-hidden animate-slide-up">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#00a884] to-[#25D366]" />
@@ -167,7 +252,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                         </p>
                     </div>
 
-                    <div className="w-full max-w-sm space-y-4">
+                    {!config?.instanceName ? (
+                      <div className="text-center p-8 text-muted-foreground">
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p className="font-bold">Configure o nome da instância</p>
+                        <p className="text-sm mt-2">Vá para a aba "Perfil" e preencha o nome da sua instância Evolution API.</p>
+                      </div>
+                    ) : (
+                      <div className="w-full max-w-sm space-y-4">
                         <div className="flex items-center justify-between p-3 bg-[#f0f2f5] dark:bg-[#111b21] rounded-lg border border-border">
                             <span className="text-sm font-semibold text-[#54656f] dark:text-[#8696a0]">Instância:</span>
                             <span className="text-sm font-bold text-[#111b21] dark:text-[#e9edef] font-mono bg-white dark:bg-white/5 px-2 py-1 rounded">
@@ -191,7 +283,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                             </span>
                         </div>
 
-                        {/* Área do QR Code */}
                         <div className="min-h-[260px] flex items-center justify-center bg-[#f0f2f5] dark:bg-[#111b21] rounded-xl border-2 border-dashed border-border mt-6 relative group">
                             {isLoading ? (
                                 <div className="flex flex-col items-center gap-2 animate-pulse">
@@ -201,9 +292,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                             ) : qrCode ? (
                                 <div className="relative p-2 bg-white rounded-lg shadow-sm animate-zoom-in">
                                     <img src={qrCode} alt="QR Code WhatsApp" className="w-60 h-60 object-contain" />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg backdrop-blur-sm">
-                                        <p className="text-white font-bold text-sm">Escaneie com seu celular</p>
-                                    </div>
                                 </div>
                             ) : connectionStatus === 'connected' ? (
                                 <div className="flex flex-col items-center gap-3 text-green-600 animate-zoom-in">
@@ -238,12 +326,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                                 <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
                             </Button>
                         </div>
-                    </div>
+                      </div>
+                    )}
                 </Card>
              </div>
-        ) : (
+        )}
+
+        {/* DEBUG TAB */}
+        {activeTab === 'debug' && (
              <div className="flex flex-col h-full animate-slide-up space-y-4">
-                 {/* Status Bar */}
                  <div className="bg-white dark:bg-[#202c33] p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                      <div className="flex items-center gap-3">
                          <div className={`p-2 rounded-full ${socketStatus.includes('Conectado') ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -265,7 +356,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                      </div>
                  </div>
 
-                 {/* Console Log */}
                  <div className="flex-1 bg-[#1e1e1e] rounded-xl border border-gray-800 p-4 font-mono text-xs overflow-hidden flex flex-col shadow-inner">
                      <div className="flex items-center gap-2 border-b border-gray-700 pb-2 mb-2">
                          <Terminal className="w-4 h-4 text-green-500" />
@@ -273,7 +363,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                      </div>
                      <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-700">
                          {logs.length === 0 ? (
-                             <div className="text-gray-500 italic p-4 text-center">Aguardando eventos... (Envie uma mensagem no WhatsApp para testar)</div>
+                             <div className="text-gray-500 italic p-4 text-center">Aguardando eventos...</div>
                          ) : logs.map((log) => (
                              <div key={log.id} className="group hover:bg-white/5 p-2 rounded transition-colors border-l-2 border-transparent hover:border-blue-500">
                                  <div className="flex items-center gap-2 mb-1">
@@ -287,10 +377,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                          ))}
                          <div ref={logsEndRef} />
                      </div>
-                 </div>
-                 
-                 <div className="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-3 rounded-lg text-xs border border-yellow-200 dark:border-yellow-900/50">
-                     <strong>Dica de Debug:</strong> Se o evento <code>MESSAGES_UPSERT</code> aparece aqui mas a mensagem não aparece no chat, verifique se a estrutura JSON dentro de <code>data</code> corresponde ao que o código <code>ChatDashboard.tsx</code> espera (geralmente <code>data.data.message</code> ou <code>data.message</code>).
                  </div>
              </div>
         )}

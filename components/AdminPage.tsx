@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { AuthConfig, Instance, SystemConfig, FeatureFlags } from '../types';
+import { AuthConfig, Instance, FeatureFlags } from '../types';
 import { Button, Input, Avatar } from './ui/Shared';
 import { Shield, Search, RefreshCw, Smartphone, LayoutDashboard, Kanban, Zap, CalendarClock, Save, Palette, Type, Plus, X, Loader2, MessageSquare, Users, Hash, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { fetchAllInstances, createInstance } from '../services/evolutionClient';
 import toast from 'react-hot-toast';
 import { useBranding } from '../index';
+import { supabase } from '@/src/integrations/supabase/client';
 
 interface AdminPageProps {
   config: AuthConfig;
@@ -24,7 +25,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [systemConfig, setSystemConfig] = useState<SystemConfig>({});
+  const [featureFlagsMap, setFeatureFlagsMap] = useState<Record<string, FeatureFlags & { id?: string }>>({});
   
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'close' | 'connecting'>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -41,25 +42,51 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
         setLoading(true);
         try {
             const apiInstances = await fetchAllInstances(config);
-            console.log(`[Admin] Carregadas ${apiInstances.length} instâncias do servidor.`);
             setInstances(apiInstances);
 
-            const savedConfig = localStorage.getItem('evo_admin_config');
-            let currentConfig: SystemConfig = savedConfig ? JSON.parse(savedConfig) : {};
-
-            // Mapeia TODAS as instâncias retornadas pelo servidor para o sistema de permissões
+            // Load feature flags from Supabase
+            const { data: flagsData } = await supabase
+              .from('instance_feature_flags')
+              .select('*');
+            
+            const flagsMap: Record<string, FeatureFlags & { id?: string }> = {};
+            (flagsData || []).forEach(f => {
+              flagsMap[f.instance_name] = {
+                id: f.id,
+                dashboard: f.dashboard ?? true,
+                kanban: f.kanban ?? true,
+                proposals: f.proposals ?? true,
+                followup: f.followup ?? true,
+                chat: f.chat ?? true,
+              };
+            });
+            
+            // Ensure all instances have flags
             apiInstances.forEach(inst => {
                 const name = inst.name || (inst as any).instanceName;
-                if (name && !currentConfig[name]) {
-                    currentConfig[name] = { ...DEFAULT_FLAGS };
+                if (name && !flagsMap[name]) {
+                    flagsMap[name] = { ...DEFAULT_FLAGS };
                 }
             });
 
-            setSystemConfig(currentConfig);
-            localStorage.setItem('evo_admin_config', JSON.stringify(currentConfig));
+            setFeatureFlagsMap(flagsMap);
+
+            // Load branding from Supabase
+            const { data: brandingData } = await supabase
+              .from('system_branding')
+              .select('*')
+              .limit(1)
+              .single();
+            
+            if (brandingData) {
+              setBrandForm({
+                systemName: brandingData.system_name,
+                primaryColor: brandingData.primary_color,
+              });
+            }
         } catch (error: any) {
             console.error("Admin Load Error:", error);
-            toast.error("Erro crítico ao sincronizar com Evolution API Global.");
+            toast.error("Erro ao sincronizar dados.");
         } finally {
             setLoading(false);
         }
@@ -69,11 +96,46 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
     loadData();
   }, [loadData]);
 
-  const handleSaveConfig = () => {
-      localStorage.setItem('evo_admin_config', JSON.stringify(systemConfig));
-      updateBranding(brandForm);
-      toast.success("Configurações Globais aplicadas com sucesso!");
-      window.dispatchEvent(new Event('storage'));
+  const handleSaveConfig = async () => {
+      try {
+        // Save feature flags to Supabase
+        for (const [instanceName, flags] of Object.entries(featureFlagsMap)) {
+          const { id, ...flagValues } = flags;
+          if (id) {
+            await supabase.from('instance_feature_flags').update(flagValues).eq('id', id);
+          } else {
+            const { data } = await supabase.from('instance_feature_flags')
+              .insert({ instance_name: instanceName, ...flagValues })
+              .select()
+              .single();
+            if (data) {
+              setFeatureFlagsMap(prev => ({
+                ...prev,
+                [instanceName]: { ...flagValues, id: data.id }
+              }));
+            }
+          }
+        }
+
+        // Save branding to Supabase
+        const { data: existing } = await supabase.from('system_branding').select('id').limit(1).single();
+        if (existing) {
+          await supabase.from('system_branding').update({
+            system_name: brandForm.systemName,
+            primary_color: brandForm.primaryColor,
+          }).eq('id', existing.id);
+        } else {
+          await supabase.from('system_branding').insert({
+            system_name: brandForm.systemName,
+            primary_color: brandForm.primaryColor,
+          });
+        }
+
+        updateBranding(brandForm);
+        toast.success("Configurações salvas com sucesso!");
+      } catch (e: any) {
+        toast.error("Erro ao salvar: " + e.message);
+      }
   };
 
   const handleCreateInstance = async (e: React.FormEvent) => {
@@ -98,7 +160,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
   };
 
   const toggleFeature = (instanceName: string, feature: keyof FeatureFlags) => {
-      setSystemConfig(prev => {
+      setFeatureFlagsMap(prev => {
           const currentFlags = prev[instanceName] || { ...DEFAULT_FLAGS };
           return {
               ...prev,
@@ -120,7 +182,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
   return (
     <div className="h-full flex flex-col bg-[#f0f2f5] dark:bg-[#0b141a] p-4 md:p-8 overflow-y-auto animate-fade-in relative">
       
-      {/* Header com Estatísticas Reais */}
+      {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 animate-slide-up">
         <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-2xl">
@@ -132,7 +194,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                 </h1>
                 <div className="flex items-center gap-3 mt-1">
                     <span className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase bg-muted/50 px-2 py-0.5 rounded border border-border/50 shadow-sm">
-                        <Smartphone className="w-3 h-3" /> {instances.length} Instâncias no Servidor
+                        <Smartphone className="w-3 h-3" /> {instances.length} Instâncias
                     </span>
                     <span className="flex items-center gap-1 text-xs font-bold text-green-600 uppercase bg-green-100/50 px-2 py-0.5 rounded border border-green-200/50">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> {instances.filter(i => i.connectionStatus === 'open').length} Conectadas
@@ -142,10 +204,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
         </div>
         
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <Button onClick={() => setIsCreateModalOpen(true)} className="flex-1 md:flex-none bg-[#00a884] hover:bg-[#008f6f] text-white gap-2 h-11 px-6 font-bold shadow-lg shadow-green-500/10 transition-all hover:scale-[1.02]">
+            <Button onClick={() => setIsCreateModalOpen(true)} className="flex-1 md:flex-none bg-[#00a884] hover:bg-[#008f6f] text-white gap-2 h-11 px-6 font-bold shadow-lg shadow-green-500/10">
                 <Plus className="w-5 h-5" /> Nova Instância
             </Button>
-            <Button onClick={handleSaveConfig} className="flex-1 md:flex-none bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 shadow-lg shadow-primary/20 gap-2 transition-all hover:scale-[1.02]">
+            <Button onClick={handleSaveConfig} className="flex-1 md:flex-none bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 shadow-lg shadow-primary/20 gap-2">
                 <Save className="w-5 h-5" /> Salvar Alterações
             </Button>
         </div>
@@ -198,11 +260,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
             </div>
         </div>
 
-        {/* Instâncias com métricas reais do JSON (_count) */}
+        {/* Instâncias */}
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-xl font-black text-[#111b21] dark:text-[#e9edef] flex items-center gap-2 uppercase tracking-tighter">
-                    <Smartphone className="w-6 h-6 text-primary" /> Inventário Global de Unidades ({instances.length})
+                    <Smartphone className="w-6 h-6 text-primary" /> Inventário Global ({instances.length})
                 </h2>
                 
                 <div className="flex items-center gap-2 bg-white dark:bg-[#202c33] p-1.5 rounded-2xl border border-border shadow-sm">
@@ -235,33 +297,31 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                 {loading ? (
                     <div className="p-32 flex flex-col items-center justify-center gap-6">
                         <Loader2 className="w-16 h-16 text-primary animate-spin" />
-                        <span className="text-lg font-black text-foreground uppercase tracking-widest">Sincronizando todas as instâncias...</span>
+                        <span className="text-lg font-black text-foreground uppercase tracking-widest">Sincronizando...</span>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead className="text-[10px] text-[#54656f] dark:text-[#8696a0] uppercase font-black bg-gray-50/50 dark:bg-black/40 border-b border-border">
                                 <tr>
-                                    <th className="px-8 py-6 tracking-widest">Identificação / Unidade</th>
-                                    <th className="px-6 py-6 tracking-widest text-center">Volume de Dados (_count)</th>
+                                    <th className="px-8 py-6 tracking-widest">Identificação</th>
+                                    <th className="px-6 py-6 tracking-widest text-center">Volume</th>
                                     <th className="px-6 py-6 tracking-widest text-center">Status</th>
-                                    <th className="px-8 py-6 tracking-widest text-center">Permissões de Módulos</th>
+                                    <th className="px-8 py-6 tracking-widest text-center">Permissões</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/40">
                                 {filteredInstances.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-8 py-20 text-center font-bold text-muted-foreground/50 text-lg uppercase italic tracking-tighter">
-                                            Nenhuma unidade localizada no servidor.
+                                        <td colSpan={4} className="px-8 py-20 text-center font-bold text-muted-foreground/50 text-lg uppercase italic">
+                                            Nenhuma unidade localizada.
                                         </td>
                                     </tr>
                                 ) : filteredInstances.map((inst) => {
                                     const name = inst.name || (inst as any).instanceName;
                                     const isConnected = inst.connectionStatus === 'open';
                                     const isConnecting = inst.connectionStatus === 'connecting';
-                                    const flags = systemConfig[name] || { ...DEFAULT_FLAGS };
-                                    
-                                    // Utilizando os contadores reais vindos da Evolution API
+                                    const flags = featureFlagsMap[name] || { ...DEFAULT_FLAGS };
                                     const stats = inst._count || { Message: 0, Contact: 0, Chat: 0 };
 
                                     return (
@@ -344,7 +404,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                       </div>
 
                       <div className="flex flex-col gap-3 pt-4">
-                          <Button type="submit" disabled={creating} className="bg-primary text-white h-16 text-xl font-black uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] transition-transform">
+                          <Button type="submit" disabled={creating} className="bg-primary text-white h-16 text-xl font-black uppercase tracking-widest shadow-2xl shadow-primary/30">
                               {creating ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Criar Instância'}
                           </Button>
                           <Button type="button" variant="ghost" className="h-14 font-bold uppercase text-xs opacity-50" onClick={() => setIsCreateModalOpen(false)}>Cancelar</Button>

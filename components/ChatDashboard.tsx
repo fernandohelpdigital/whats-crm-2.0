@@ -14,6 +14,7 @@ import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, 
 import { Button, Avatar } from './ui/Shared';
 import { useTheme, useBranding } from '../index';
 import { useAuth } from '../src/hooks/useAuth';
+import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
 
 interface ChatDashboardProps {
@@ -51,9 +52,9 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     contactsRef.current = contacts;
   }, [contacts]);
 
-  // Carregar configurações de features
+  // Load feature flags from Supabase
   useEffect(() => {
-    const loadFeatures = () => {
+    const loadFeatures = async () => {
         if (isAdmin) {
             setFeatures(DEFAULT_FLAGS);
             return;
@@ -62,26 +63,32 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         const instanceName = config?.instanceName;
         if (!instanceName) return;
 
-        const savedConfig = localStorage.getItem('evo_admin_config');
-        if (savedConfig) {
-            try {
-                const parsed = JSON.parse(savedConfig);
-                const userFlags = parsed[instanceName];
-                if (userFlags) {
-                    setFeatures(userFlags);
-                    if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings') {
-                        setCurrentView('settings');
-                    }
-                }
-            } catch (e) {
-                console.error("Erro ao ler configurações de features", e);
+        try {
+          const { data } = await supabase
+            .from('instance_feature_flags')
+            .select('*')
+            .eq('instance_name', instanceName)
+            .single();
+          
+          if (data) {
+            const userFlags: FeatureFlags = {
+              dashboard: data.dashboard ?? true,
+              kanban: data.kanban ?? true,
+              proposals: data.proposals ?? true,
+              followup: data.followup ?? true,
+              chat: data.chat ?? true,
+            };
+            setFeatures(userFlags);
+            if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings') {
+              setCurrentView('settings');
             }
+          }
+        } catch (e) {
+          console.error("Erro ao ler features", e);
         }
     };
 
     loadFeatures();
-    window.addEventListener('storage', loadFeatures);
-    return () => window.removeEventListener('storage', loadFeatures);
   }, [config?.instanceName, isAdmin, currentView]);
 
   const refreshData = useCallback(async (isInitial = false) => {

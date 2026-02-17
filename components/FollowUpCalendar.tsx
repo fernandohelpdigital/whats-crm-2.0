@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Contact, FollowUpTask } from '../types';
 import { Button, Input, Card, Avatar } from './ui/Shared';
 import { 
@@ -14,9 +14,12 @@ import {
   X, 
   Check, 
   Send,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { supabase } from '@/src/integrations/supabase/client';
+import { useAuth } from '../src/hooks/useAuth';
 
 interface FollowUpCalendarProps {
   contacts: Contact[];
@@ -26,14 +29,11 @@ const DAYS_OF_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 const FollowUpCalendar: React.FC<FollowUpCalendarProps> = ({ contacts }) => {
-  // Estado do Calendário
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
-  // Estado dos Agendamentos
   const [tasks, setTasks] = useState<FollowUpTask[]>([]);
-  
-  // Estado do Modal
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTask, setNewTask] = useState<{
     contactId: string;
@@ -43,26 +43,39 @@ const FollowUpCalendar: React.FC<FollowUpCalendarProps> = ({ contacts }) => {
   }>({ contactId: '', message: '', time: '09:00', type: 'whatsapp' });
   const [contactSearch, setContactSearch] = useState('');
 
-  // Simular carga de dados iniciais
-  useEffect(() => {
-    // Mock de dados existentes
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    setTasks([
-      {
-        id: '1',
-        contactId: '123',
-        contactName: 'Cliente Exemplo',
-        scheduledAt: tomorrow,
-        message: 'Olá! Gostaria de saber se conseguiu avaliar nossa proposta solar?',
-        status: 'pending',
-        type: 'whatsapp'
-      }
-    ]);
-  }, []);
+  const loadTasks = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('follow_up_tasks')
+        .select('*')
+        .order('scheduled_at', { ascending: true });
+      
+      if (error) throw error;
+      
+      const mapped: FollowUpTask[] = (data || []).map(t => ({
+        id: t.id,
+        contactId: t.contact_id || '',
+        contactName: t.contact_name,
+        avatarUrl: t.avatar_url || undefined,
+        scheduledAt: new Date(t.scheduled_at),
+        message: t.message,
+        status: t.status as 'pending' | 'sent' | 'cancelled',
+        type: t.type as 'whatsapp' | 'call' | 'email',
+      }));
+      setTasks(mapped);
+    } catch (e: any) {
+      console.error("Erro ao carregar tasks:", e);
+      toast.error("Erro ao carregar agendamentos");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-  // Lógica do Calendário
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
@@ -81,17 +94,14 @@ const FollowUpCalendar: React.FC<FollowUpCalendarProps> = ({ contacts }) => {
     const startDay = getFirstDayOfMonth(year, month);
     const days = [];
 
-    // Empty cells for days before start of month
     for (let i = 0; i < startDay; i++) {
       days.push(<div key={`empty-${i}`} className="h-24 md:h-32 border border-border/40 bg-muted/10" />);
     }
 
-    // Days of month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const isToday = new Date().toDateString() === date.toDateString();
       const isSelected = selectedDate.toDateString() === date.toDateString();
-      
       const dayTasks = tasks.filter(t => new Date(t.scheduledAt).toDateString() === date.toDateString());
 
       days.push(
@@ -132,8 +142,8 @@ const FollowUpCalendar: React.FC<FollowUpCalendarProps> = ({ contacts }) => {
     return days;
   };
 
-  const handleSaveTask = () => {
-      if (!newTask.contactId || !newTask.message) {
+  const handleSaveTask = async () => {
+      if (!newTask.contactId || !newTask.message || !user) {
           toast.error("Selecione um contato e escreva uma mensagem.");
           return;
       }
@@ -143,8 +153,29 @@ const FollowUpCalendar: React.FC<FollowUpCalendarProps> = ({ contacts }) => {
       const scheduledDate = new Date(selectedDate);
       scheduledDate.setHours(parseInt(hours), parseInt(minutes));
 
+      const { data, error } = await supabase
+        .from('follow_up_tasks')
+        .insert({
+          user_id: user.id,
+          contact_id: newTask.contactId,
+          contact_name: selectedContact?.name || 'Desconhecido',
+          avatar_url: selectedContact?.avatarUrl || null,
+          message: newTask.message,
+          scheduled_at: scheduledDate.toISOString(),
+          type: newTask.type,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast.error("Erro ao salvar agendamento");
+        console.error(error);
+        return;
+      }
+
       const task: FollowUpTask = {
-          id: Date.now().toString(),
+          id: data.id,
           contactId: newTask.contactId,
           contactName: selectedContact?.name || 'Desconhecido',
           avatarUrl: selectedContact?.avatarUrl,
@@ -160,11 +191,18 @@ const FollowUpCalendar: React.FC<FollowUpCalendarProps> = ({ contacts }) => {
       toast.success("Follow-up agendado com sucesso!");
   };
 
-  // Filtragem de contatos para o modal
   const modalContacts = contacts.filter(c => 
       c.name.toLowerCase().includes(contactSearch.toLowerCase()) || 
       c.number.includes(contactSearch)
   );
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-background p-4 md:p-6 overflow-hidden">
