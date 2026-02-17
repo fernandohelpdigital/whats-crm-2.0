@@ -262,7 +262,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
         </div>
 
         {/* User Management */}
-        <UserManagementPanel />
+        <UserManagementPanel instances={instances} adminBaseUrl={config.baseUrl} />
 
         {/* Instâncias */}
         <div className="space-y-6">

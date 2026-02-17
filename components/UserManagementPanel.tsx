@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Check } from 'lucide-react';
+import { Instance } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
 
@@ -9,21 +10,27 @@ interface ManagedUser {
   email: string;
   display_name: string;
   instance_name: string | null;
+  base_url: string | null;
   roles: string[];
   created_at: string;
   last_sign_in_at: string | null;
 }
 
-const UserManagementPanel: React.FC = () => {
+interface UserManagementPanelProps {
+  instances: Instance[];
+  adminBaseUrl: string;
+}
+
+const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, adminBaseUrl }) => {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [assigningUser, setAssigningUser] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke('manage-user-roles', {
         body: { action: 'list' },
       });
@@ -55,11 +62,36 @@ const UserManagementPanel: React.FC = () => {
     }
   };
 
+  const handleAssignInstance = async (userId: string, instanceName: string | null) => {
+    setActionLoading(userId);
+    try {
+      const res = await supabase.functions.invoke('manage-user-roles', {
+        body: {
+          action: 'assign_instance',
+          user_id: userId,
+          instance_name: instanceName,
+          base_url: adminBaseUrl,
+        },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success(instanceName ? `Instância "${instanceName}" associada!` : 'Instância removida!');
+      setAssigningUser(null);
+      await fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao associar instância');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filtered = users.filter(u =>
     u.display_name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase()) ||
     u.instance_name?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const instanceNames = instances.map(i => i.name || (i as any).instanceName).filter(Boolean);
 
   return (
     <div className="bg-white dark:bg-[#202c33] rounded-[2rem] shadow-sm border border-border p-6 md:p-8">
@@ -102,6 +134,7 @@ const UserManagementPanel: React.FC = () => {
             <tbody className="divide-y divide-border/40">
               {filtered.map(u => {
                 const isAdmin = u.roles.includes('admin');
+                const isAssigning = assigningUser === u.id;
                 return (
                   <tr key={u.id} className="hover:bg-primary/[0.02] transition-colors">
                     <td className="px-4 py-4">
@@ -109,9 +142,39 @@ const UserManagementPanel: React.FC = () => {
                       <div className="text-xs text-muted-foreground">{u.email}</div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="text-xs font-mono text-muted-foreground">
-                        {u.instance_name || '—'}
-                      </span>
+                      {isAssigning ? (
+                        <div className="flex flex-col gap-1">
+                          <select
+                            className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            defaultValue={u.instance_name || ''}
+                            onChange={e => handleAssignInstance(u.id, e.target.value || null)}
+                          >
+                            <option value="">— Nenhuma —</option>
+                            {instanceNames.map(name => (
+                              <option key={name} value={name}>{name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => setAssigningUser(null)}
+                            className="text-[10px] text-muted-foreground hover:text-foreground"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-mono ${u.instance_name ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
+                            {u.instance_name || '— Sem instância —'}
+                          </span>
+                          <button
+                            onClick={() => setAssigningUser(u.id)}
+                            className="text-primary hover:text-primary/80 transition-colors"
+                            title="Associar instância"
+                          >
+                            <Link2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
