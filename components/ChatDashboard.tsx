@@ -431,8 +431,8 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                     <ProposalGenerator contacts={contacts} />
                 ) : currentView === 'followup' && features.followup ? (
                     <FollowUpCalendar contacts={contacts} />
-                ) : currentView === 'admin' && isAdmin && config ? (
-                    <AdminPage config={config} />
+                ) : currentView === 'admin' && isAdmin ? (
+                    <AdminPage config={config || { instanceName: '', apiKey: '', baseUrl: 'https://api.automacaohelp.com.br' }} />
                 ) : config ? (
                     <SettingsPage config={config} />
                 ) : (
