@@ -103,12 +103,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
         if (!isInitial) toast.loading('Atualizando...', { id: 'refresh-chats' });
         
-        if (isAdmin) {
-             setContacts([]);
-             setLeads([]);
-             if (isInitial) setLoading(false);
-             return;
-        }
+        // Admins com instância configurada também carregam dados
 
         const data = await fetchChats(config);
         
@@ -146,7 +141,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
   // Socket em useEffect separado com controle de StrictMode
   useEffect(() => {
-    if (isAdmin || !config) return;
+    if (!config) return;
     
     let cancelled = false;
     
