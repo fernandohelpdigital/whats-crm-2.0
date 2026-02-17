@@ -139,14 +139,24 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
       }
   }, [config, isAdmin]);
 
-  // Inicialização de Dados e Socket (Lógica mantida do original para funcionalidade)
+  // Inicialização de Dados
   useEffect(() => {
     refreshData(true);
-    if (isAdmin || !config) return;
-    const socket = initSocket(config);
-    if (!socket) return;
+  }, [refreshData]);
 
-    const handleMessageEvent = (payload: any) => {
+  // Socket em useEffect separado com controle de StrictMode
+  useEffect(() => {
+    if (isAdmin || !config) return;
+    
+    let cancelled = false;
+    
+    // Pequeno delay para evitar que o StrictMode mate o socket imediatamente
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      const socket = initSocket(config);
+      if (!socket) return;
+
+      const handleMessageEvent = (payload: any) => {
         let eventData = payload;
         if (Array.isArray(payload)) {
             eventData = payload[0];
@@ -203,15 +213,17 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                 return [newContact, ...prevContacts];
             }
         });
-    };
-    socket.on("MESSAGES_UPSERT", handleMessageEvent);
-    socket.on("messages.upsert", handleMessageEvent);
+      };
+      socket.on("MESSAGES_UPSERT", handleMessageEvent);
+      socket.on("messages.upsert", handleMessageEvent);
+    }, 100);
+
     return () => {
-        socket.off("MESSAGES_UPSERT", handleMessageEvent);
-        socket.off("messages.upsert", handleMessageEvent);
+        cancelled = true;
+        clearTimeout(timer);
         disconnectSocket();
     };
-  }, [config, isAdmin, refreshData]);
+  }, [config, isAdmin]);
 
   const handleUpdateLeads = useCallback((newLeads: Deal[]) => {
     setLeads(newLeads);
