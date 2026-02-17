@@ -107,12 +107,12 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         user_id: user.id,
       }));
 
-      // Upsert in batches of 100
+      // Upsert in batches of 100 - updates name/avatar if contact already exists
       for (let i = 0; i < contactsToUpsert.length; i += 100) {
         const batch = contactsToUpsert.slice(i, i + 100);
         await supabase
           .from('contacts')
-          .upsert(batch, { onConflict: 'phone,user_id', ignoreDuplicates: true });
+          .upsert(batch, { onConflict: 'phone,user_id' });
       }
     } catch (e) {
       console.error("Erro ao sincronizar contatos:", e);
