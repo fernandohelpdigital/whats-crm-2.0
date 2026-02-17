@@ -13,10 +13,11 @@ import ChatPage from './ChatPage';
 import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn } from 'lucide-react';
 import { Button, Avatar } from './ui/Shared';
 import { useTheme, useBranding } from '../index';
+import { useAuth } from '../src/hooks/useAuth';
 import toast from 'react-hot-toast';
 
 interface ChatDashboardProps {
-  config: AuthConfig;
+  config: AuthConfig | null;
   onLogout: () => void;
 }
 
@@ -31,6 +32,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
 const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const { theme, toggleTheme } = useTheme();
   const { branding } = useBranding();
+  const { isAdmin, profile, signOut } = useAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [leads, setLeads] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,6 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   
   // Feature Flags State
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FLAGS);
-  const isAdmin = config.instanceName === 'admin';
   const contactsRef = useRef<Contact[]>([]);
 
   useEffect(() => {
@@ -58,11 +59,14 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             return;
         }
 
+        const instanceName = config?.instanceName;
+        if (!instanceName) return;
+
         const savedConfig = localStorage.getItem('evo_admin_config');
         if (savedConfig) {
             try {
                 const parsed = JSON.parse(savedConfig);
-                const userFlags = parsed[config.instanceName];
+                const userFlags = parsed[instanceName];
                 if (userFlags) {
                     setFeatures(userFlags);
                     if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings') {
@@ -78,10 +82,17 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     loadFeatures();
     window.addEventListener('storage', loadFeatures);
     return () => window.removeEventListener('storage', loadFeatures);
-  }, [config.instanceName, isAdmin, currentView]);
+  }, [config?.instanceName, isAdmin, currentView]);
 
   const refreshData = useCallback(async (isInitial = false) => {
       try {
+        if (!config) {
+          setContacts([]);
+          setLeads([]);
+          if (isInitial) setLoading(false);
+          return;
+        }
+
         if (!isInitial) toast.loading('Atualizando...', { id: 'refresh-chats' });
         
         if (isAdmin) {
@@ -123,7 +134,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   // Inicialização de Dados e Socket (Lógica mantida do original para funcionalidade)
   useEffect(() => {
     refreshData(true);
-    if (isAdmin) return;
+    if (isAdmin || !config) return;
     const socket = initSocket(config);
     if (!socket) return;
 
@@ -356,16 +367,16 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
             <div className={`mt-2 flex items-center gap-3 p-3 rounded-2xl bg-muted/30 border border-border/50 ${isExpanded ? '' : 'justify-center p-2'}`}>
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {config.instanceName.charAt(0).toUpperCase()}
+                    {(profile?.display_name || config?.instanceName || 'U').charAt(0).toUpperCase()}
                 </div>
                 {isExpanded && (
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-foreground truncate">{config.instanceName}</p>
-                        <p className="text-[10px] text-muted-foreground">Online</p>
+                        <p className="text-xs font-bold text-foreground truncate">{profile?.display_name || config?.instanceName || 'Usuário'}</p>
+                        <p className="text-[10px] text-muted-foreground">{config?.instanceName || 'Online'}</p>
                     </div>
                 )}
                 {isExpanded && (
-                    <button onClick={onLogout} className="text-muted-foreground hover:text-red-500 transition-colors">
+                    <button onClick={async () => { await signOut(); }} className="text-muted-foreground hover:text-red-500 transition-colors">
                         <LogOut className="h-4 w-4" />
                     </button>
                 )}
@@ -392,16 +403,16 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             <div key={currentView} className="h-full w-full flex flex-col animate-slide-up">
                 {currentView === 'dashboard' && features.dashboard ? (
                     <Dashboard leads={leads} onOpenMenu={() => setIsMobileMenuOpen(true)} />
-                ) : currentView === 'chat' && features.chat ? (
+                ) : currentView === 'chat' && features.chat && config ? (
                     <ChatPage 
                         contacts={contacts} 
                         config={config} 
                         onOpenMenu={() => setIsMobileMenuOpen(true)}
-                        onLogout={onLogout}
+                        onLogout={async () => { await signOut(); }}
                         onMarkAsRead={handleMarkAsRead}
                         onRefresh={() => refreshData(false)}
                     />
-                ) : currentView === 'kanban' && features.kanban ? (
+                ) : currentView === 'kanban' && features.kanban && config ? (
                     <SalesKanban 
                         leads={leads}
                         setLeads={handleUpdateLeads}
@@ -413,10 +424,14 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                     <ProposalGenerator contacts={contacts} />
                 ) : currentView === 'followup' && features.followup ? (
                     <FollowUpCalendar contacts={contacts} />
-                ) : currentView === 'admin' && isAdmin ? (
+                ) : currentView === 'admin' && isAdmin && config ? (
                     <AdminPage config={config} />
-                ) : (
+                ) : config ? (
                     <SettingsPage config={config} />
+                ) : (
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                        <p>Configure sua instância nas Configurações do perfil.</p>
+                    </div>
                 )}
             </div>
         </div>
