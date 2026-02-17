@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users } from 'lucide-react';
+import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical } from 'lucide-react';
 import { Button } from './ui/Shared';
 import toast from 'react-hot-toast';
 
@@ -175,7 +175,7 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
         </div>
       )}
 
-      {/* List */}
+      {/* Table List */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
@@ -183,41 +183,51 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
             <p className="text-sm">{search ? 'Nenhum contato encontrado' : 'Nenhum contato salvo ainda'}</p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="w-5" />
+              <span>Usuários</span>
+              <span>WhatsApp</span>
+              <span>Data de inscrição</span>
+              <div className="w-8" />
+            </div>
+            {/* Table Rows */}
             {filtered.map(c => (
-              <div key={c.id} className="bg-card border border-border rounded-2xl p-4 hover:shadow-md transition-shadow group">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-                    {c.avatar_url ? <img src={c.avatar_url} className="h-10 w-10 rounded-full object-cover" /> : c.name.charAt(0).toUpperCase()}
+              <div key={c.id} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors group">
+                <div className="w-5" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold shrink-0">
+                    {c.avatar_url ? <img src={c.avatar_url} className="h-10 w-10 rounded-full object-cover" /> : <UserCircle className="h-6 w-6" />}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate">{c.name}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <Phone className="h-3 w-3" /> {c.phone}
-                    </div>
-                    {c.email && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <Mail className="h-3 w-3" /> <span className="truncate">{c.email}</span>
-                      </div>
-                    )}
-                    {c.tags && c.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {c.tags.map((t, i) => (
-                          <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{t}</span>
-                        ))}
-                      </div>
-                    )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground truncate text-sm">{c.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c.phone}</p>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => startEdit(c)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
-                      <Edit2 className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-sm text-foreground">+{c.phone}</span>
+                <span className="text-sm text-muted-foreground">
+                  {new Date(c.created_at).toLocaleDateString('pt-BR')} {new Date(c.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      const menu = e.currentTarget.nextElementSibling as HTMLElement;
+                      menu.classList.toggle('hidden');
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  <div className="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 py-1 min-w-[120px]">
+                    <button onClick={() => { startEdit(c); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted">
+                      <Edit2 className="h-3.5 w-3.5" /> Editar
                     </button>
-                    <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" />
+                    <button onClick={() => handleDelete(c.id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
                     </button>
                   </div>
                 </div>
-                {c.notes && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{c.notes}</p>}
               </div>
             ))}
           </div>
