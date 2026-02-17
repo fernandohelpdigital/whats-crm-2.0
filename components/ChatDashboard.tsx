@@ -92,6 +92,33 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     loadFeatures();
   }, [config?.instanceName, isAdmin, currentView]);
 
+  const syncContactsToSupabase = useCallback(async (chatContacts: Contact[]) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const validContacts = chatContacts.filter(c => c.number && !c.isGroup);
+      if (validContacts.length === 0) return;
+
+      const contactsToUpsert = validContacts.map(c => ({
+        phone: c.number,
+        name: c.name || c.number,
+        avatar_url: c.avatarUrl || null,
+        user_id: user.id,
+      }));
+
+      // Upsert in batches of 100
+      for (let i = 0; i < contactsToUpsert.length; i += 100) {
+        const batch = contactsToUpsert.slice(i, i + 100);
+        await supabase
+          .from('contacts')
+          .upsert(batch, { onConflict: 'phone,user_id', ignoreDuplicates: true });
+      }
+    } catch (e) {
+      console.error("Erro ao sincronizar contatos:", e);
+    }
+  }, []);
+
   const refreshData = useCallback(async (isInitial = false) => {
       try {
         if (!config) {
@@ -108,6 +135,9 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         const data = await fetchChats(config);
         
         setContacts(data);
+        
+        // Sincronizar contatos do chat para o Supabase
+        syncContactsToSupabase(data);
         
         if (isInitial) {
             const initialLeads: Deal[] = data.map(c => ({
@@ -205,6 +235,10 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                     isGroup: remoteJid.includes('@g.us'),
                     sourceDevice: 'web'
                 };
+                // Sincronizar novo contato do socket para o Supabase
+                if (!remoteJid.includes('@g.us')) {
+                  syncContactsToSupabase([newContact]);
+                }
                 return [newContact, ...prevContacts];
             }
         });
