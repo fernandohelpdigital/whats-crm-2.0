@@ -53,7 +53,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     contactsRef.current = contacts;
   }, [contacts]);
 
-  // Load feature flags from Supabase
+  // Load feature flags from Supabase (per-user)
   useEffect(() => {
     const loadFeatures = async () => {
         if (isAdmin) {
@@ -61,14 +61,14 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             return;
         }
 
-        const instanceName = config?.instanceName;
-        if (!instanceName) return;
-
         try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
           const { data } = await supabase
-            .from('instance_feature_flags')
+            .from('user_feature_flags')
             .select('*')
-            .eq('instance_name', instanceName)
+            .eq('user_id', user.id)
             .single();
           
           if (data) {
@@ -90,7 +90,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     };
 
     loadFeatures();
-  }, [config?.instanceName, isAdmin, currentView]);
+  }, [isAdmin, currentView]);
 
   const syncContactsToSupabase = useCallback(async (chatContacts: Contact[]) => {
     try {
