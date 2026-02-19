@@ -2,3 +2,6 @@ project_id = "qvkthrhjlhennplzfuow"
 
 [functions.manage-user-roles]
 verify_jwt = false
+
+[functions.create-user-instance]
+verify_jwt = false

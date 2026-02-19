@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../src/hooks/useAuth';
+import { supabase } from '../src/integrations/supabase/client';
 import { Button, Input } from './ui/Shared';
 import { Loader2, Moon, Sun, ChevronRight, Eye, EyeOff, ShieldCheck, Globe, Mail, Lock, User } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -34,7 +35,35 @@ const AuthScreen: React.FC = () => {
     try {
       if (isSignUp) {
         await signUp(form.email, form.password, form.displayName || undefined);
-        toast.success('Conta criada! Verifique seu e-mail para confirmar.');
+        toast.success('Conta criada! Criando sua instância...');
+        
+        // Wait briefly for auth session to be established, then create instance
+        // We need to sign in to get a session token for the edge function
+        try {
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email: form.email,
+            password: form.password,
+          });
+          
+          if (signInData?.session) {
+            const res = await supabase.functions.invoke('create-user-instance', {
+              body: {
+                display_name: form.displayName || form.email.split('@')[0],
+                token: form.password,
+              },
+            });
+            
+            if (res.error) {
+              console.error('Instance creation error:', res.error);
+              toast.error('Conta criada, mas houve erro ao criar a instância. Contate o suporte.');
+            } else {
+              toast.success('Instância criada com sucesso!');
+            }
+          }
+        } catch (instanceErr: any) {
+          console.error('Instance creation failed:', instanceErr);
+          toast.error('Conta criada, mas houve erro ao criar a instância.');
+        }
       } else {
         await signIn(form.email, form.password);
         toast.success('Login realizado com sucesso!');
