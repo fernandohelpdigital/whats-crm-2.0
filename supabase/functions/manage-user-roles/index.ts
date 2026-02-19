@@ -128,7 +128,34 @@ Deno.serve(async (req) => {
       if (user_id === userId) {
         return new Response(JSON.stringify({ error: "Você não pode excluir a si mesmo" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      // Delete related data first
+
+      // Fetch profile to get instance_name before deleting
+      const { data: userProfile } = await adminClient
+        .from("profiles")
+        .select("instance_name, base_url, api_key")
+        .eq("id", user_id)
+        .single();
+
+      // Delete instance from Evolution API if exists
+      if (userProfile?.instance_name) {
+        const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY") || userProfile.api_key;
+        const evolutionApiUrl = userProfile.base_url || Deno.env.get("EVOLUTION_API_URL") || "https://api.automacaohelp.com.br";
+        try {
+          const delRes = await fetch(`${evolutionApiUrl}/instance/delete/${userProfile.instance_name}`, {
+            method: "DELETE",
+            headers: { apikey: evolutionApiKey },
+          });
+          if (!delRes.ok) {
+            console.error("Evolution API delete instance error:", await delRes.text());
+          } else {
+            console.log("Evolution instance deleted:", userProfile.instance_name);
+          }
+        } catch (evoErr: any) {
+          console.error("Failed to delete Evolution instance:", evoErr.message);
+        }
+      }
+
+      // Delete related data
       await adminClient.from("user_feature_flags").delete().eq("user_id", user_id);
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
       await adminClient.from("profiles").delete().eq("id", user_id);
