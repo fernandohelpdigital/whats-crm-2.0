@@ -123,6 +123,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    if (action === "delete_user") {
+      if (!user_id) throw new Error("user_id required");
+      if (user_id === userId) {
+        return new Response(JSON.stringify({ error: "Você não pode excluir a si mesmo" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Delete related data first
+      await adminClient.from("user_feature_flags").delete().eq("user_id", user_id);
+      await adminClient.from("user_roles").delete().eq("user_id", user_id);
+      await adminClient.from("profiles").delete().eq("id", user_id);
+      // Delete auth user
+      const { error: deleteError } = await adminClient.auth.admin.deleteUser(user_id);
+      if (deleteError) throw deleteError;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (action === "assign_instance") {
       if (!user_id) throw new Error("user_id required");
       const updateData: any = {};

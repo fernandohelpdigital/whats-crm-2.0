@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2 } from 'lucide-react';
 import { Instance, FeatureFlags } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -150,6 +150,24 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
     }
   };
 
+  const handleDeleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${email}"? Esta ação é irreversível.`)) return;
+    setActionLoading(userId);
+    try {
+      const res = await supabase.functions.invoke('manage-user-roles', {
+        body: { action: 'delete_user', user_id: userId },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success('Usuário excluído com sucesso!');
+      await fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao excluir usuário');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const toggleUserFeature = (userId: string, feature: keyof FeatureFlags) => {
     setUserFlagsMap(prev => {
       const current = prev[userId] || { ...DEFAULT_FLAGS };
@@ -174,7 +192,6 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
       if (res.error) throw res.error;
       if (res.data?.error) throw new Error(res.data.error);
       
-      // Update local state with returned id
       if (res.data?.id) {
         setUserFlagsMap(prev => ({
           ...prev,
@@ -344,6 +361,15 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                               >
                                 <Key className="w-3 h-3" />
                                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteUser(u.id, u.email)}
+                                className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
+                                title="Excluir usuário"
+                              >
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             </>
                           )}
