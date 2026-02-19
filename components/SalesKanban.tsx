@@ -168,6 +168,14 @@ const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, on
         averageBillValue: Number(d.average_bill_value) || undefined,
         budgetPresented: d.budget_presented || false,
         notes: d.notes || undefined,
+        clientType: (d as any).client_type || undefined,
+        cpfCnpj: (d as any).cpf_cnpj || undefined,
+        position: (d as any).position || undefined,
+        website: (d as any).website || undefined,
+        priority: (d as any).priority || undefined,
+        segment: (d as any).segment || undefined,
+        mainNeed: (d as any).main_need || undefined,
+        servicesInterest: (d as any).services_interest || undefined,
       }));
       setLeads(mapped);
     } catch (e: any) {
@@ -244,7 +252,15 @@ const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, on
           average_bill_value: editingLead.averageBillValue || null,
           budget_presented: editingLead.budgetPresented || false,
           notes: editingLead.notes || null,
-        })
+          client_type: editingLead.clientType || null,
+          cpf_cnpj: editingLead.cpfCnpj || null,
+          position: editingLead.position || null,
+          website: editingLead.website || null,
+          priority: editingLead.priority || null,
+          segment: editingLead.segment || null,
+          main_need: editingLead.mainNeed || null,
+          services_interest: editingLead.servicesInterest || null,
+        } as any)
         .eq('id', editingLead.id);
       
       if (error) {
@@ -402,105 +418,63 @@ const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, on
 
                   <form onSubmit={handleUpdateLeadForm} className="p-6 overflow-y-auto space-y-6">
                       
-                      {/* Personal Info */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Nome do Responsável</label>
-                              <Input value={editingLead.title} onChange={e => setEditingLead({...editingLead, title: e.target.value})} className="h-11 font-bold" />
-                          </div>
-                          <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Empresa</label>
-                              <Input value={editingLead.company || ''} onChange={e => setEditingLead({...editingLead, company: e.target.value})} className="h-11" placeholder="Nome da empresa" />
-                          </div>
-                          <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">WhatsApp Principal</label>
-                              <div className="relative">
-                                  <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                                  <Input value={editingLead.phone || ''} readOnly className="h-11 pl-10 bg-muted/30 cursor-not-allowed font-mono text-sm" />
-                              </div>
-                          </div>
-                          <div className="space-y-1.5">
-                              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">E-mail</label>
-                              <Input value={editingLead.email || ''} onChange={e => setEditingLead({...editingLead, email: e.target.value})} className="h-11" placeholder="exemplo@email.com" />
-                          </div>
-                      </div>
-
-                      {/* TAG SELECTOR SECTION */}
-                      <div className="pt-2">
+                      {/* Dados Pessoais */}
+                      <div>
                         <label className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-1.5 mb-3">
-                           <Tag className="w-3 h-3" /> Categorização & Etiquetas
+                           <User className="w-3 h-3" /> Dados do Cliente
                         </label>
-                        <div className="flex flex-wrap gap-2">
-                            {AVAILABLE_TAGS.map(tag => {
-                                const selected = editingLead.tags?.includes(tag);
-                                return (
-                                    <button
-                                        key={tag}
-                                        type="button"
-                                        onClick={() => handleToggleTag(tag)}
-                                        className={`
-                                            px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
-                                            ${selected 
-                                                ? `${getTagColor(tag)} ring-2 ring-primary ring-offset-1` 
-                                                : 'bg-muted/30 text-muted-foreground border-transparent hover:border-muted-foreground/40'
-                                            }
-                                        `}
-                                    >
-                                        {tag}
-                                    </button>
-                                );
-                            })}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">Nome do Cliente</label>
+                              <Input value={editingLead.title} onChange={e => setEditingLead({...editingLead, title: e.target.value})} className="h-10 font-bold" />
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">Empresa</label>
+                              <Input value={editingLead.company || ''} onChange={e => setEditingLead({...editingLead, company: e.target.value})} className="h-10" placeholder="Nome da empresa" />
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">Tipo de Cliente</label>
+                              <select 
+                                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
+                                  value={editingLead.clientType || ''}
+                                  onChange={e => setEditingLead({...editingLead, clientType: e.target.value})}
+                              >
+                                  <option value="">Selecione...</option>
+                                  <option value="pf">Pessoa Física</option>
+                                  <option value="pj">Pessoa Jurídica</option>
+                              </select>
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">CPF / CNPJ</label>
+                              <Input value={editingLead.cpfCnpj || ''} onChange={e => setEditingLead({...editingLead, cpfCnpj: e.target.value})} className="h-10" placeholder="000.000.000-00" />
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">E-mail</label>
+                              <Input value={editingLead.email || ''} onChange={e => setEditingLead({...editingLead, email: e.target.value})} className="h-10" placeholder="exemplo@email.com" />
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">Telefone</label>
+                              <Input value={editingLead.phone || ''} readOnly className="h-10 bg-muted/30 cursor-not-allowed font-mono text-sm" />
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">Cargo / Função</label>
+                              <Input value={editingLead.position || ''} onChange={e => setEditingLead({...editingLead, position: e.target.value})} className="h-10" placeholder="Ex: Diretor de TI" />
+                          </div>
+                          <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-muted-foreground">Site</label>
+                              <Input value={editingLead.website || ''} onChange={e => setEditingLead({...editingLead, website: e.target.value})} className="h-10" placeholder="https://..." />
+                          </div>
                         </div>
                       </div>
 
-                      {/* Financial Info */}
-                      <div className="pt-2 border-t border-border pt-4">
+                      {/* Endereço */}
+                      <div className="border-t border-border pt-4">
                         <label className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-1.5 mb-3">
-                           <DollarSign className="w-3 h-3" /> Dados Comerciais
-                        </label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold">Consumo Médio (R$)</label>
-                                <Input 
-                                    type="number" 
-                                    value={editingLead.averageBillValue || ''} 
-                                    onChange={e => setEditingLead({...editingLead, averageBillValue: Number(e.target.value)})} 
-                                    className="h-10 text-lg font-bold text-primary"
-                                    placeholder="0,00"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold">Orçamento Enviado</label>
-                                <select 
-                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
-                                    value={editingLead.budgetPresented ? 'sim' : 'nao'}
-                                    onChange={e => setEditingLead({...editingLead, budgetPresented: e.target.value === 'sim'})}
-                                >
-                                    <option value="nao">Aguardando Envio</option>
-                                    <option value="sim">Sim, Apresentado</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold">Fase Atual</label>
-                                <select 
-                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
-                                    value={editingLead.status}
-                                    onChange={e => setEditingLead({...editingLead, status: e.target.value as DealStatus})}
-                                >
-                                    {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                      </div>
-
-                      {/* Location */}
-                      <div className="pt-2 border-t border-border pt-4">
-                        <label className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-1.5 mb-3">
-                           <MapPin className="w-3 h-3" /> Instalação
+                           <MapPin className="w-3 h-3" /> Endereço
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold">CEP</label>
+                                <label className="text-[11px] font-semibold text-muted-foreground">CEP</label>
                                 <div className="relative">
                                     <Input 
                                         value={editingLead.zipCode || ''} 
@@ -516,45 +490,155 @@ const SalesKanban: React.FC<SalesKanbanProps> = ({ leads, setLeads, contacts, on
                                 </div>
                             </div>
                             <div className="space-y-1.5 md:col-span-3">
-                                <label className="text-[11px] font-semibold">Logradouro</label>
+                                <label className="text-[11px] font-semibold text-muted-foreground">Logradouro</label>
                                 <Input value={editingLead.address || ''} onChange={e => setEditingLead({...editingLead, address: e.target.value})} className="h-10" />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold">Número</label>
-                                <Input value={editingLead.numberAddress || ''} onChange={e => setEditingLead({...editingLead, numberAddress: e.target.value})} className="h-10" placeholder="Ex: 123" />
+                                <label className="text-[11px] font-semibold text-muted-foreground">Número</label>
+                                <Input value={editingLead.numberAddress || ''} onChange={e => setEditingLead({...editingLead, numberAddress: e.target.value})} className="h-10" />
                             </div>
                             <div className="space-y-1.5 md:col-span-3">
-                                <label className="text-[11px] font-semibold">Complemento</label>
+                                <label className="text-[11px] font-semibold text-muted-foreground">Complemento</label>
                                 <Input value={editingLead.complement || ''} onChange={e => setEditingLead({...editingLead, complement: e.target.value})} className="h-10" />
                             </div>
                             <div className="space-y-1.5 md:col-span-2">
-                                <label className="text-[11px] font-semibold">Bairro</label>
-                                <Input value={editingLead.neighborhood || ''} onChange={e => setEditingLead({...editingLead, neighborhood: e.target.value})} className="h-10" />
-                            </div>
-                            <div className="space-y-1.5 md:col-span-1.5">
-                                <label className="text-[11px] font-semibold">Cidade</label>
+                                <label className="text-[11px] font-semibold text-muted-foreground">Cidade</label>
                                 <Input value={editingLead.city || ''} onChange={e => setEditingLead({...editingLead, city: e.target.value})} className="h-10" />
                             </div>
-                            <div className="space-y-1.5 md:col-span-0.5">
-                                <label className="text-[11px] font-semibold">UF</label>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Estado</label>
                                 <Input value={editingLead.state || ''} onChange={e => setEditingLead({...editingLead, state: e.target.value})} className="h-10" maxLength={2} />
                             </div>
                         </div>
                       </div>
 
-                      {/* Notes */}
-                      <div className="space-y-1.5 border-t border-border pt-4">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Observações Privadas</label>
+                      {/* Tags */}
+                      <div className="border-t border-border pt-4">
+                        <label className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-1.5 mb-3">
+                           <Tag className="w-3 h-3" /> Tags & Etiquetas
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {AVAILABLE_TAGS.map(tag => {
+                                const selected = editingLead.tags?.includes(tag);
+                                return (
+                                    <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => handleToggleTag(tag)}
+                                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all
+                                            ${selected 
+                                                ? `${getTagColor(tag)} ring-2 ring-primary ring-offset-1` 
+                                                : 'bg-muted/30 text-muted-foreground border-transparent hover:border-muted-foreground/40'
+                                            }`}
+                                    >
+                                        {tag}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Dados Comerciais & Qualificação */}
+                      <div className="border-t border-border pt-4">
+                        <label className="text-[10px] font-black uppercase text-primary tracking-wider flex items-center gap-1.5 mb-3">
+                           <DollarSign className="w-3 h-3" /> Qualificação & Comercial
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Origem do Lead</label>
+                                <select 
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
+                                    value={editingLead.source || ''}
+                                    onChange={e => setEditingLead({...editingLead, source: e.target.value})}
+                                >
+                                    <option value="">Selecione...</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="indicacao">Indicação</option>
+                                    <option value="google">Google</option>
+                                    <option value="instagram">Instagram</option>
+                                    <option value="facebook">Facebook</option>
+                                    <option value="site">Site</option>
+                                    <option value="linkedin">LinkedIn</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Etapa do Funil</label>
+                                <select 
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
+                                    value={editingLead.status}
+                                    onChange={e => setEditingLead({...editingLead, status: e.target.value as DealStatus})}
+                                >
+                                    {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Prioridade</label>
+                                <select 
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
+                                    value={editingLead.priority || ''}
+                                    onChange={e => setEditingLead({...editingLead, priority: e.target.value})}
+                                >
+                                    <option value="">Selecione...</option>
+                                    <option value="baixa">🟢 Baixa</option>
+                                    <option value="media">🟡 Média</option>
+                                    <option value="alta">🟠 Alta</option>
+                                    <option value="urgente">🔴 Urgente</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Segmento / Nicho</label>
+                                <Input value={editingLead.segment || ''} onChange={e => setEditingLead({...editingLead, segment: e.target.value})} className="h-10" placeholder="Ex: Saúde, Varejo, Indústria..." />
+                            </div>
+                            <div className="space-y-1.5 md:col-span-2">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Necessidade Principal</label>
+                                <Input value={editingLead.mainNeed || ''} onChange={e => setEditingLead({...editingLead, mainNeed: e.target.value})} className="h-10" placeholder="Ex: Migração para nuvem, suporte técnico..." />
+                            </div>
+                            <div className="space-y-1.5 md:col-span-2">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Serviços de Interesse</label>
+                                <Input value={editingLead.servicesInterest || ''} onChange={e => setEditingLead({...editingLead, servicesInterest: e.target.value})} className="h-10" placeholder="Ex: Firewall, backup, CFTV, cabeamento..." />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Valor Estimado (R$)</label>
+                                <Input 
+                                    type="number" 
+                                    value={editingLead.value || ''} 
+                                    onChange={e => setEditingLead({...editingLead, value: Number(e.target.value)})} 
+                                    className="h-10 text-lg font-bold text-primary"
+                                    placeholder="0,00"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-semibold text-muted-foreground">Orçamento Disponível (R$)</label>
+                                <Input 
+                                    type="number" 
+                                    value={editingLead.averageBillValue || ''} 
+                                    onChange={e => setEditingLead({...editingLead, averageBillValue: Number(e.target.value)})} 
+                                    className="h-10"
+                                    placeholder="0,00"
+                                />
+                            </div>
+                        </div>
+                      </div>
+
+                      {/* Observações */}
+                      <div className="border-t border-border pt-4">
+                          <label className="text-[11px] font-semibold text-muted-foreground">Observações Gerais</label>
                           <textarea 
-                            className="w-full min-h-[100px] p-3 rounded-lg border border-input bg-muted/10 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="Anotações sobre reuniões, perfil ou resistências do lead..."
+                            className="w-full min-h-[100px] mt-1.5 p-3 rounded-lg border border-input bg-muted/10 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                            placeholder="Anotações sobre reuniões, perfil técnico, resistências do lead..."
                             value={editingLead.notes || ''}
                             onChange={e => setEditingLead({...editingLead, notes: e.target.value})}
                           />
                       </div>
 
+                      {/* Timestamps */}
+                      <div className="flex items-center gap-6 text-[10px] text-muted-foreground pt-2">
+                          <span>Criado em: {new Date(editingLead.date).toLocaleDateString('pt-BR')}</span>
+                      </div>
+
                       {/* Footer Actions */}
-                      <div className="pt-6 border-t border-border flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-[#202c33] pb-2">
+                      <div className="pt-4 border-t border-border flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-[#202c33] pb-2">
                           <Button type="button" variant="ghost" onClick={() => setEditingLead(null)}>Descartar</Button>
                           <Button type="submit" className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 shadow-md shadow-primary/20 gap-2">
                               <Save className="w-4 h-4" /> Salvar Cadastro
