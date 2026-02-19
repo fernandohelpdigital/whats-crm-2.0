@@ -21,7 +21,7 @@ interface LogEntry {
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'connection' | 'debug'>('profile');
   
   // Profile form
@@ -206,45 +206,55 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                     onChange={e => setDisplayName(e.target.value)} 
                     className="h-11" 
                     placeholder="Seu nome"
+                    disabled={!isAdmin}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-muted-foreground">Nome da Instância (Evolution API)</label>
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Nome da Instância (Help Whats API)</label>
                   <Input 
                     value={instanceName} 
                     onChange={e => setInstanceName(e.target.value)} 
                     className="h-11 font-mono" 
                     placeholder="nome-da-instancia"
+                    disabled={!isAdmin}
                   />
-                  <p className="text-[10px] text-muted-foreground">Identificador da sua instância na Evolution API.</p>
+                  <p className="text-[10px] text-muted-foreground">Identificador da sua instância na Help Whats API.</p>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-muted-foreground">URL Base da API</label>
-                  <Input 
-                    value={baseUrl} 
-                    onChange={e => setBaseUrl(e.target.value)} 
-                    className="h-11 font-mono" 
-                    placeholder="https://api.automacaohelp.com.br"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-muted-foreground">API Key (Evolution API)</label>
-                  <Input 
-                    type="password"
-                    value={apiKey} 
-                    onChange={e => setApiKey(e.target.value)} 
-                    className="h-11 font-mono" 
-                    placeholder="Sua chave de API"
-                  />
-                  <p className="text-[10px] text-muted-foreground">Chave de autenticação para acessar a Evolution API.</p>
-                </div>
-                <Button
-                  onClick={handleSaveProfile} 
-                  disabled={savingProfile}
-                  className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 gap-2"
-                >
-                  <Save className="w-4 h-4" /> {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
-                </Button>
+                {isAdmin && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">URL Base da API</label>
+                      <Input 
+                        value={baseUrl} 
+                        onChange={e => setBaseUrl(e.target.value)} 
+                        className="h-11 font-mono" 
+                        placeholder="https://api.automacaohelp.com.br"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase text-muted-foreground">API Key (Help Whats API)</label>
+                      <Input 
+                        type="password"
+                        value={apiKey} 
+                        onChange={e => setApiKey(e.target.value)} 
+                        className="h-11 font-mono" 
+                        placeholder="Sua chave de API"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Chave de autenticação para acessar a Help Whats API.</p>
+                    </div>
+                  </>
+                )}
+                {isAdmin ? (
+                  <Button
+                    onClick={handleSaveProfile} 
+                    disabled={savingProfile}
+                    className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 gap-2"
+                  >
+                    <Save className="w-4 h-4" /> {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Apenas administradores podem alterar as configurações do perfil.</p>
+                )}
               </div>
             </Card>
           </div>
@@ -270,7 +280,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                       <div className="text-center p-8 text-muted-foreground">
                         <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
                         <p className="font-bold">Configure o nome da instância</p>
-                        <p className="text-sm mt-2">Vá para a aba "Perfil" e preencha o nome da sua instância Evolution API.</p>
+                        <p className="text-sm mt-2">Vá para a aba "Perfil" e preencha o nome da sua instância Help Whats API.</p>
                       </div>
                     ) : (
                       <div className="w-full max-w-sm space-y-4">

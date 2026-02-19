@@ -383,7 +383,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                             <Key className="w-4 h-4 text-muted-foreground shrink-0" />
                             <Input
                               type="password"
-                              placeholder="Cole a API Key da Evolution API"
+                              placeholder="Cole a API Key da Help Whats API"
                               value={apiKeyInputs[u.id] || ''}
                               onChange={e => setApiKeyInputs(prev => ({ ...prev, [u.id]: e.target.value }))}
                               className="h-9 font-mono text-xs flex-1"
