@@ -74,6 +74,52 @@ Deno.serve(async (req) => {
 
     console.log("Instance created:", instanceName);
 
+    // Enable WebSocket with all events
+    const allEvents = [
+      "APPLICATION_STARTUP",
+      "QRCODE_UPDATED",
+      "MESSAGES_SET",
+      "MESSAGES_UPSERT",
+      "MESSAGES_UPDATE",
+      "MESSAGES_DELETE",
+      "SEND_MESSAGE",
+      "CONTACTS_SET",
+      "CONTACTS_UPSERT",
+      "CONTACTS_UPDATE",
+      "PRESENCE_UPDATE",
+      "CHATS_SET",
+      "CHATS_UPSERT",
+      "CHATS_UPDATE",
+      "CHATS_DELETE",
+      "GROUPS_UPSERT",
+      "GROUP_UPDATE",
+      "GROUP_PARTICIPANTS_UPDATE",
+      "CONNECTION_UPDATE",
+      "LABELS_EDIT",
+      "LABELS_ASSOCIATION",
+      "CALL",
+      "TYPEBOT_START",
+      "TYPEBOT_CHANGE_STATUS",
+      "LOGOUT_INSTANCE",
+      "REMOVE_INSTANCE",
+    ];
+
+    try {
+      const wsRes = await fetch(`${evolutionApiUrl}/websocket/set/${instanceName}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: evolutionApiKey },
+        body: JSON.stringify({ enabled: true, events: allEvents }),
+      });
+      if (!wsRes.ok) {
+        const wsErr = await wsRes.text();
+        console.error("WebSocket set error:", wsErr);
+      } else {
+        console.log("WebSocket enabled for:", instanceName);
+      }
+    } catch (wsError: any) {
+      console.error("WebSocket set failed:", wsError.message);
+    }
+
     // Update user profile
     const { error: updateError } = await adminClient
       .from("profiles")
