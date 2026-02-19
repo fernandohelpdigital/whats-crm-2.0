@@ -80,7 +80,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
               chat: data.chat ?? true,
             };
             setFeatures(userFlags);
-            if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings') {
+            if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings' && currentView !== 'contacts' && currentView !== 'admin') {
               setCurrentView('settings');
             }
           }
