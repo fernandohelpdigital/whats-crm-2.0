@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       const wsRes = await fetch(`${evolutionApiUrl}/websocket/set/${instanceName}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: evolutionApiKey },
-        body: JSON.stringify({ enabled: true, events: allEvents }),
+        body: JSON.stringify({ websocket: { enabled: true, events: allEvents } }),
       });
       if (!wsRes.ok) {
         const wsErr = await wsRes.text();
