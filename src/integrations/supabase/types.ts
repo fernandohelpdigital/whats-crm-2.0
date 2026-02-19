@@ -60,17 +60,24 @@ export type Database = {
           average_bill_value: number | null
           budget_presented: boolean | null
           city: string | null
+          client_type: string | null
           company: string
           complement: string | null
           contact_id: string | null
+          cpf_cnpj: string | null
           created_at: string
           date: string | null
           email: string | null
           id: string
+          main_need: string | null
           neighborhood: string | null
           notes: string | null
           number_address: string | null
           phone: string | null
+          position: string | null
+          priority: string | null
+          segment: string | null
+          services_interest: string | null
           source: string | null
           state: string | null
           status: Database["public"]["Enums"]["deal_status"]
@@ -79,6 +86,7 @@ export type Database = {
           updated_at: string
           user_id: string
           value: number | null
+          website: string | null
           zip_code: string | null
         }
         Insert: {
@@ -87,17 +95,24 @@ export type Database = {
           average_bill_value?: number | null
           budget_presented?: boolean | null
           city?: string | null
+          client_type?: string | null
           company?: string
           complement?: string | null
           contact_id?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           date?: string | null
           email?: string | null
           id?: string
+          main_need?: string | null
           neighborhood?: string | null
           notes?: string | null
           number_address?: string | null
           phone?: string | null
+          position?: string | null
+          priority?: string | null
+          segment?: string | null
+          services_interest?: string | null
           source?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["deal_status"]
@@ -106,6 +121,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           value?: number | null
+          website?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -114,17 +130,24 @@ export type Database = {
           average_bill_value?: number | null
           budget_presented?: boolean | null
           city?: string | null
+          client_type?: string | null
           company?: string
           complement?: string | null
           contact_id?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           date?: string | null
           email?: string | null
           id?: string
+          main_need?: string | null
           neighborhood?: string | null
           notes?: string | null
           number_address?: string | null
           phone?: string | null
+          position?: string | null
+          priority?: string | null
+          segment?: string | null
+          services_interest?: string | null
           source?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["deal_status"]
@@ -133,6 +156,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           value?: number | null
+          website?: string | null
           zip_code?: string | null
         }
         Relationships: []

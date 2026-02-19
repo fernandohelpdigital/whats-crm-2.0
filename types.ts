@@ -73,6 +73,16 @@ export interface Deal {
   averageBillValue?: number; 
   budgetPresented?: boolean; 
   notes?: string; 
+
+  // IT Professional fields
+  clientType?: string;
+  cpfCnpj?: string;
+  position?: string;
+  website?: string;
+  priority?: string;
+  segment?: string;
+  mainNeed?: string;
+  servicesInterest?: string;
 }
 
 export interface FollowUpTask {
