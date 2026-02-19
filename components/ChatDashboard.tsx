@@ -11,7 +11,8 @@ import SettingsPage from './SettingsPage';
 import AdminPage from './AdminPage';
 import ChatPage from './ChatPage';
 import ContactsPage from './ContactsPage';
-import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn, Users } from 'lucide-react';
+import GroupExtractorPage from './GroupExtractorPage';
+import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn, Users, Download } from 'lucide-react';
 import { Button, Avatar } from './ui/Shared';
 import { useTheme, useBranding } from '../index';
 import { useAuth } from '../src/hooks/useAuth';
@@ -43,7 +44,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts' | 'extractor'>('dashboard');
   
   // Feature Flags State
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FLAGS);
@@ -352,13 +353,21 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                   />
               )}
 
-              <SidebarButton 
+               <SidebarButton 
                  active={currentView === 'contacts'}
                  icon={<Users className="h-5 w-5" />}
                  label="Contatos"
                  expanded={isExpanded}
                  onClick={() => { setCurrentView('contacts'); closeMobileMenu(); }}
-              />
+               />
+
+               <SidebarButton 
+                 active={currentView === 'extractor'}
+                 icon={<Download className="h-5 w-5" />}
+                 label="Extrator Grupos"
+                 expanded={isExpanded}
+                 onClick={() => { setCurrentView('extractor'); closeMobileMenu(); }}
+               />
               
               {features.chat && (
                  <SidebarButton 
@@ -472,6 +481,8 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                      <Dashboard leads={leads} onOpenMenu={() => setIsMobileMenuOpen(true)} />
                  ) : currentView === 'contacts' ? (
                      <ContactsPage onOpenMenu={() => setIsMobileMenuOpen(true)} />
+                 ) : currentView === 'extractor' && config ? (
+                     <GroupExtractorPage config={config} onOpenMenu={() => setIsMobileMenuOpen(true)} />
                  ) : currentView === 'chat' && features.chat && config ? (
                     <ChatPage 
                         contacts={contacts} 
