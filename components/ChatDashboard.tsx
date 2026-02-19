@@ -26,8 +26,8 @@ interface ChatDashboardProps {
 const DEFAULT_FLAGS: FeatureFlags = {
     dashboard: true,
     kanban: true,
-    proposals: true,
-    followup: true,
+    proposals: false,
+    followup: false,
     chat: true
 };
 
