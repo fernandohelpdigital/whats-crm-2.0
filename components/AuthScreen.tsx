@@ -34,35 +34,37 @@ const AuthScreen: React.FC = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        await signUp(form.email, form.password, form.displayName || undefined);
-        toast.success('Conta criada! Criando sua instância...');
-        
-        // Wait briefly for auth session to be established, then create instance
-        // We need to sign in to get a session token for the edge function
-        try {
-          const { data: signInData } = await supabase.auth.signInWithPassword({
-            email: form.email,
-            password: form.password,
-          });
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: form.email,
+          password: form.password,
+          options: {
+            data: { display_name: form.displayName || form.email },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (signUpError) throw signUpError;
+
+        const newUserId = signUpData?.user?.id;
+        if (newUserId) {
+          toast.success('Conta criada! Criando sua instância...');
           
-          if (signInData?.session) {
-            const res = await supabase.functions.invoke('create-user-instance', {
-              body: {
-                display_name: form.displayName || form.email.split('@')[0],
-                token: form.password,
-              },
-            });
-            
-            if (res.error) {
-              console.error('Instance creation error:', res.error);
-              toast.error('Conta criada, mas houve erro ao criar a instância. Contate o suporte.');
-            } else {
-              toast.success('Instância criada com sucesso!');
-            }
+          // Call edge function directly without auth (uses service role internally)
+          const res = await supabase.functions.invoke('create-user-instance', {
+            body: {
+              user_id: newUserId,
+              display_name: form.displayName || form.email.split('@')[0],
+              token: form.password,
+            },
+          });
+
+          if (res.error || res.data?.error) {
+            console.error('Instance creation error:', res.error || res.data?.error);
+            toast.error('Conta criada, mas houve erro ao criar a instância. Contate o suporte.');
+          } else {
+            toast.success('Instância criada com sucesso! Verifique seu e-mail para confirmar.');
           }
-        } catch (instanceErr: any) {
-          console.error('Instance creation failed:', instanceErr);
-          toast.error('Conta criada, mas houve erro ao criar a instância.');
+        } else {
+          toast.success('Conta criada! Verifique seu e-mail para confirmar.');
         }
       } else {
         await signIn(form.email, form.password);

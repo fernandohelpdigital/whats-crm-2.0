@@ -16,54 +16,51 @@ Deno.serve(async (req) => {
     const evolutionApiKey = Deno.env.get("EVOLUTION_API_KEY")!;
     const evolutionApiUrl = Deno.env.get("EVOLUTION_API_URL") || "https://api.automacaohelp.com.br";
 
-    // Authenticate the calling user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+    const { user_id, display_name, token: instanceToken } = await req.json();
+
+    if (!user_id || !display_name || !instanceToken) {
+      return new Response(JSON.stringify({ error: "Missing required fields: user_id, display_name, token" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verify user exists and doesn't already have an instance
+    const { data: profile, error: profileError } = await adminClient
+      .from("profiles")
+      .select("id, instance_name")
+      .eq("id", user_id)
+      .single();
+
+    if (profileError || !profile) {
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (profile.instance_name) {
+      return new Response(JSON.stringify({ success: true, instance_name: profile.instance_name, message: "Instance already exists" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claimsData, error: authError } = await anonClient.auth.getClaims(token);
-    if (authError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
-    const { display_name, token: instanceToken } = await req.json();
-
-    // Sanitize instance name: lowercase, no spaces/special chars
+    // Sanitize instance name
     const sanitized = (display_name || "user")
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // remove accents
-      .replace(/[^a-z0-9]/g, "_") // replace non-alphanumeric with _
-      .replace(/_+/g, "_") // collapse multiple underscores
-      .replace(/^_|_$/g, ""); // trim leading/trailing underscores
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
 
     const instanceName = `${sanitized}_${Date.now().toString(36)}`;
 
     // Create instance on Evolution API
     const createRes = await fetch(`${evolutionApiUrl}/instance/create`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: evolutionApiKey,
-      },
-      body: JSON.stringify({
-        instanceName,
-        token: instanceToken,
-        qrcode: true,
-        integration: "WHATSAPP-BAILEYS",
-      }),
+      headers: { "Content-Type": "application/json", apikey: evolutionApiKey },
+      body: JSON.stringify({ instanceName, token: instanceToken, qrcode: true, integration: "WHATSAPP-BAILEYS" }),
     });
 
     if (!createRes.ok) {
@@ -75,19 +72,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const instanceData = await createRes.json();
     console.log("Instance created:", instanceName);
 
-    // Update user profile with instance info using service role
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    // Update user profile
     const { error: updateError } = await adminClient
       .from("profiles")
-      .update({
-        instance_name: instanceName,
-        api_key: instanceToken,
-        base_url: evolutionApiUrl,
-      })
-      .eq("id", userId);
+      .update({ instance_name: instanceName, api_key: instanceToken, base_url: evolutionApiUrl })
+      .eq("id", user_id);
 
     if (updateError) {
       console.error("Profile update error:", updateError.message);
@@ -103,9 +94,8 @@ Deno.serve(async (req) => {
     );
   } catch (err: any) {
     console.error("Error:", err.message);
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
