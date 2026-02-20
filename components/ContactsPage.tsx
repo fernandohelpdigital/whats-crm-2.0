@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical } from 'lucide-react';
+import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical, Filter, ChevronDown } from 'lucide-react';
 import { Button } from './ui/Shared';
 import toast from 'react-hot-toast';
 
@@ -29,6 +29,15 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<DBContact | null>(null);
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', notes: '', tags: '' });
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showTagFilter, setShowTagFilter] = useState(false);
+
+  // Collect all unique tags
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    contacts.forEach(c => (c.tags || []).forEach(t => tagSet.add(t)));
+    return Array.from(tagSet).sort();
+  }, [contacts]);
 
   const loadContacts = useCallback(async () => {
     try {
@@ -108,11 +117,20 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
     setFormData({ name: '', phone: '', email: '', notes: '', tags: '' });
   };
 
-  const filtered = contacts.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search) ||
-    (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
-  );
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  };
+
+  const filtered = contacts.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone.includes(search) ||
+      (c.email && c.email.toLowerCase().includes(search.toLowerCase()));
+    
+    const matchesTags = selectedTags.length === 0 || 
+      selectedTags.every(tag => (c.tags || []).includes(tag));
+
+    return matchesSearch && matchesTags;
+  });
 
   if (loading) {
     return (
@@ -138,18 +156,60 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
         </Button>
       </header>
 
-      {/* Search */}
-      <div className="px-4 md:px-6 py-3">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar por nome, telefone ou email..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
+      {/* Search & Filters */}
+      <div className="px-4 md:px-6 py-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar por nome, telefone ou email..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <Button
+            variant={showTagFilter ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowTagFilter(!showTagFilter)}
+            className="gap-1.5"
+          >
+            <Filter className="h-4 w-4" />
+            Tags
+            {selectedTags.length > 0 && (
+              <span className="bg-primary-foreground text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">{selectedTags.length}</span>
+            )}
+          </Button>
+          {selectedTags.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setSelectedTags([])} className="text-xs text-muted-foreground">
+              Limpar filtros
+            </Button>
+          )}
         </div>
+
+        {/* Tag Filter Panel */}
+        {showTagFilter && (
+          <div className="flex flex-wrap gap-1.5 p-3 bg-muted/30 rounded-xl border border-border">
+            {allTags.length === 0 ? (
+              <span className="text-xs text-muted-foreground">Nenhuma tag encontrada</span>
+            ) : (
+              allTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTagFilter(tag)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    selectedTags.includes(tag)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background border border-border text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Form Modal */}
@@ -185,16 +245,17 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
         ) : (
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               <div className="w-5" />
               <span>Usuários</span>
               <span>WhatsApp</span>
+              <span>Tags</span>
               <span>Data de inscrição</span>
               <div className="w-8" />
             </div>
             {/* Table Rows */}
             {filtered.map(c => (
-              <div key={c.id} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors group">
+              <div key={c.id} className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors group">
                 <div className="w-5" />
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold shrink-0">
@@ -206,6 +267,21 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
                   </div>
                 </div>
                 <span className="text-sm text-foreground">+{c.phone}</span>
+                <div className="flex flex-wrap gap-1 min-w-0">
+                  {(c.tags || []).length === 0 ? (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  ) : (
+                    (c.tags || []).map(tag => (
+                      <span
+                        key={tag}
+                        onClick={() => { setSelectedTags([tag]); setShowTagFilter(true); }}
+                        className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary cursor-pointer hover:bg-primary/20 transition-colors"
+                      >
+                        {tag}
+                      </span>
+                    ))
+                  )}
+                </div>
                 <span className="text-sm text-muted-foreground">
                   {new Date(c.created_at).toLocaleDateString('pt-BR')} {new Date(c.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                 </span>
