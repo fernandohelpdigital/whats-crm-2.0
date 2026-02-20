@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical, Filter, ChevronDown } from 'lucide-react';
+import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical, Filter, ChevronDown, CheckSquare, Square, MinusSquare } from 'lucide-react';
 import { Button } from './ui/Shared';
 import toast from 'react-hot-toast';
 
@@ -31,6 +31,9 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', notes: '', tags: '' });
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showTagFilter, setShowTagFilter] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkTagModal, setShowBulkTagModal] = useState(false);
+  const [bulkTagInput, setBulkTagInput] = useState('');
 
   // Collect all unique tags
   const allTags = useMemo(() => {
@@ -131,6 +134,57 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
 
     return matchesSearch && matchesTags;
   });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Excluir ${selectedIds.size} contato(s)?`)) return;
+    try {
+      const { error } = await supabase.from('contacts').delete().in('id', Array.from(selectedIds));
+      if (error) throw error;
+      toast.success(`${selectedIds.size} contato(s) excluído(s)`);
+      setSelectedIds(new Set());
+      loadContacts();
+    } catch (e: any) {
+      toast.error('Erro: ' + e.message);
+    }
+  };
+
+  const handleBulkAddTags = async () => {
+    if (selectedIds.size === 0 || !bulkTagInput.trim()) return;
+    const newTags = bulkTagInput.split(',').map(t => t.trim()).filter(Boolean);
+    if (newTags.length === 0) return;
+    try {
+      const selectedContacts = contacts.filter(c => selectedIds.has(c.id));
+      for (const c of selectedContacts) {
+        const merged = Array.from(new Set([...(c.tags || []), ...newTags]));
+        const { error } = await supabase.from('contacts').update({ tags: merged }).eq('id', c.id);
+        if (error) throw error;
+      }
+      toast.success(`Tags adicionadas a ${selectedIds.size} contato(s)`);
+      setShowBulkTagModal(false);
+      setBulkTagInput('');
+      setSelectedIds(new Set());
+      loadContacts();
+    } catch (e: any) {
+      toast.error('Erro: ' + e.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -235,6 +289,46 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
         </div>
       )}
 
+      {/* Bulk Tag Modal */}
+      {showBulkTagModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowBulkTagModal(false)}>
+          <div className="bg-card rounded-2xl shadow-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-foreground">Adicionar Tags</h2>
+              <button onClick={() => setShowBulkTagModal(false)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="text-sm text-muted-foreground">{selectedIds.size} contato(s) selecionado(s)</p>
+            <input
+              placeholder="Tags (separadas por vírgula)"
+              value={bulkTagInput}
+              onChange={e => setBulkTagInput(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setShowBulkTagModal(false)}>Cancelar</Button>
+              <Button variant="default" size="sm" onClick={handleBulkAddTags}>Adicionar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="px-4 md:px-6 py-2 bg-primary/5 border-b border-primary/20 flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-medium text-foreground">{selectedIds.size} selecionado(s)</span>
+          <div className="flex-1" />
+          <Button variant="outline" size="sm" onClick={() => setShowBulkTagModal(true)} className="gap-1.5">
+            <Tag className="h-3.5 w-3.5" /> Adicionar Tags
+          </Button>
+          <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="gap-1.5">
+            <Trash2 className="h-3.5 w-3.5" /> Excluir
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs">
+            Cancelar
+          </Button>
+        </div>
+      )}
+
       {/* Table List */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-4">
         {filtered.length === 0 ? (
@@ -245,8 +339,16 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
         ) : (
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             {/* Table Header */}
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              <div className="w-5" />
+            <div className="grid grid-cols-[40px_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <button onClick={toggleSelectAll} className="flex items-center justify-center">
+                {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                ) : selectedIds.size > 0 ? (
+                  <MinusSquare className="h-4 w-4 text-primary" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+              </button>
               <span>Usuários</span>
               <span>WhatsApp</span>
               <span>Tags</span>
@@ -255,8 +357,10 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
             </div>
             {/* Table Rows */}
             {filtered.map(c => (
-              <div key={c.id} className="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors group">
-                <div className="w-5" />
+              <div key={c.id} className={`grid grid-cols-[40px_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-4 py-3 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors group ${selectedIds.has(c.id) ? 'bg-primary/5' : ''}`}>
+                <button onClick={() => toggleSelect(c.id)} className="flex items-center justify-center">
+                  {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-muted-foreground" />}
+                </button>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold shrink-0">
                     {c.avatar_url ? <img src={c.avatar_url} className="h-10 w-10 rounded-full object-cover" /> : <UserCircle className="h-6 w-6" />}
