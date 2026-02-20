@@ -55,10 +55,17 @@ const ChatArea: React.FC<ChatAreaProps> = ({ contact, config, onToggleInfo, onBa
 
         if (!key || !key.remoteJid) return;
 
-        const incomingJid = key.remoteJid.split('@')[0];
-        const currentChatJid = contact.id.split('@')[0];
+        // Check if the incoming message belongs to this chat
+        // Compare against all mergedIds (handles @lid and @s.whatsapp.net)
+        const incomingJid = key.remoteJid;
+        const incomingPhone = incomingJid.split('@')[0];
+        const currentPhone = contact.id.split('@')[0];
+        const allIds = contact.mergedIds || [contact.id];
+        
+        const belongsToChat = incomingPhone === currentPhone || 
+            allIds.some(mid => mid === incomingJid || mid.split('@')[0] === incomingPhone);
 
-        if (incomingJid !== currentChatJid) return;
+        if (!belongsToChat) return;
 
         const isMe = key.fromMe;
         const msgId = key.id;
@@ -110,11 +117,16 @@ const ChatArea: React.FC<ChatAreaProps> = ({ contact, config, onToggleInfo, onBa
          const updateData = data.data || data;
          
          if (Array.isArray(updateData)) {
-             updateData.forEach((update: any) => {
-                 const updateJid = update.key.remoteJid?.split('@')[0];
-                 const currentChatJid = contact.id.split('@')[0];
+              updateData.forEach((update: any) => {
+                 const updateJid = update.key.remoteJid;
+                 const updatePhone = updateJid?.split('@')[0];
+                 const currentPhone = contact.id.split('@')[0];
+                 const allIds = contact.mergedIds || [contact.id];
+                 
+                 const belongsToChat = updatePhone === currentPhone ||
+                     allIds.some((mid: string) => mid === updateJid || mid.split('@')[0] === updatePhone);
 
-                 if (updateJid === currentChatJid) {
+                 if (belongsToChat) {
                      const statusMap: any = { 3: 'sent', 4: 'read', 5: 'read' }; 
                      const newStatus = statusMap[update.update.status] || 'sent';
                      
