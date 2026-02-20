@@ -29,7 +29,9 @@ const DEFAULT_FLAGS: FeatureFlags = {
     kanban: true,
     proposals: false,
     followup: false,
-    chat: true
+    chat: true,
+    contacts: true,
+    extractor: false,
 };
 
 const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
@@ -79,9 +81,11 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
               proposals: data.proposals ?? true,
               followup: data.followup ?? true,
               chat: data.chat ?? true,
+              contacts: data.contacts ?? true,
+              extractor: data.extractor ?? false,
             };
             setFeatures(userFlags);
-            if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings' && currentView !== 'contacts' && currentView !== 'admin') {
+            if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings' && currentView !== 'admin') {
               setCurrentView('settings');
             }
           }
@@ -353,21 +357,25 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                   />
               )}
 
-               <SidebarButton 
-                 active={currentView === 'contacts'}
-                 icon={<Users className="h-5 w-5" />}
-                 label="Contatos"
-                 expanded={isExpanded}
-                 onClick={() => { setCurrentView('contacts'); closeMobileMenu(); }}
-               />
+               {features.contacts && (
+                 <SidebarButton 
+                   active={currentView === 'contacts'}
+                   icon={<Users className="h-5 w-5" />}
+                   label="Contatos"
+                   expanded={isExpanded}
+                   onClick={() => { setCurrentView('contacts'); closeMobileMenu(); }}
+                  />
+               )}
 
-               <SidebarButton 
-                 active={currentView === 'extractor'}
-                 icon={<Download className="h-5 w-5" />}
-                 label="Extrator Grupos"
-                 expanded={isExpanded}
-                 onClick={() => { setCurrentView('extractor'); closeMobileMenu(); }}
-               />
+               {features.extractor && (
+                 <SidebarButton 
+                   active={currentView === 'extractor'}
+                   icon={<Download className="h-5 w-5" />}
+                   label="Extrator Grupos"
+                   expanded={isExpanded}
+                   onClick={() => { setCurrentView('extractor'); closeMobileMenu(); }}
+                  />
+               )}
               
               {features.chat && (
                  <SidebarButton 

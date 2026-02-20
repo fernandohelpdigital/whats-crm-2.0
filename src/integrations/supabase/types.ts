@@ -338,8 +338,10 @@ export type Database = {
       user_feature_flags: {
         Row: {
           chat: boolean
+          contacts: boolean
           created_at: string
           dashboard: boolean
+          extractor: boolean
           followup: boolean
           id: string
           kanban: boolean
@@ -349,8 +351,10 @@ export type Database = {
         }
         Insert: {
           chat?: boolean
+          contacts?: boolean
           created_at?: string
           dashboard?: boolean
+          extractor?: boolean
           followup?: boolean
           id?: string
           kanban?: boolean
@@ -360,8 +364,10 @@ export type Database = {
         }
         Update: {
           chat?: boolean
+          contacts?: boolean
           created_at?: string
           dashboard?: boolean
+          extractor?: boolean
           followup?: boolean
           id?: string
           kanban?: boolean

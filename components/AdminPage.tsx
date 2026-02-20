@@ -18,7 +18,9 @@ const DEFAULT_FLAGS: FeatureFlags = {
     kanban: true,
     proposals: true,
     followup: true,
-    chat: true
+    chat: true,
+    contacts: true,
+    extractor: false,
 };
 
 const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
@@ -72,6 +74,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                 proposals: f.proposals ?? true,
                 followup: f.followup ?? true,
                 chat: f.chat ?? true,
+                contacts: true,
+                extractor: false,
               };
             });
             
