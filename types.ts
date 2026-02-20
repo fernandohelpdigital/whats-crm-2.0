@@ -117,7 +117,9 @@ export interface FeatureFlags {
   proposals: boolean;
   followup: boolean;
   dashboard: boolean;
-  chat: boolean; 
+  chat: boolean;
+  contacts: boolean;
+  extractor: boolean;
 }
 
 export interface SystemConfig {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2 } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle } from 'lucide-react';
 import { Instance, FeatureFlags } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -27,6 +27,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
   proposals: true,
   followup: true,
   chat: true,
+  contacts: true,
+  extractor: false,
 };
 
 const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, adminBaseUrl }) => {
@@ -64,6 +66,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
             proposals: f.proposals ?? true,
             followup: f.followup ?? true,
             chat: f.chat ?? true,
+            contacts: f.contacts ?? true,
+            extractor: f.extractor ?? false,
           };
         });
       }
@@ -313,10 +317,12 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-center gap-1.5">
                           <ModuleToggle active={flags.dashboard} icon={<LayoutDashboard className="w-3.5 h-3.5" />} label="Dash" onClick={() => toggleUserFeature(u.id, 'dashboard')} />
+                          <ModuleToggle active={flags.contacts} icon={<UserCircle className="w-3.5 h-3.5" />} label="Contatos" onClick={() => toggleUserFeature(u.id, 'contacts')} />
                           <ModuleToggle active={flags.chat} icon={<MessageSquare className="w-3.5 h-3.5" />} label="Chat" onClick={() => toggleUserFeature(u.id, 'chat')} />
                           <ModuleToggle active={flags.kanban} icon={<Kanban className="w-3.5 h-3.5" />} label="Kanban" onClick={() => toggleUserFeature(u.id, 'kanban')} />
                           <ModuleToggle active={flags.proposals} icon={<Zap className="w-3.5 h-3.5" />} label="Vendas" onClick={() => toggleUserFeature(u.id, 'proposals')} />
                           <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-3.5 h-3.5" />} label="Follow" onClick={() => toggleUserFeature(u.id, 'followup')} />
+                          <ModuleToggle active={flags.extractor} icon={<DownloadIcon className="w-3.5 h-3.5" />} label="Extrator" onClick={() => toggleUserFeature(u.id, 'extractor')} />
                           <button
                             onClick={() => handleSaveUserFlags(u.id)}
                             disabled={actionLoading === u.id}
