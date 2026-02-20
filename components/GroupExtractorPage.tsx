@@ -87,8 +87,28 @@ const GroupExtractorPage: React.FC<GroupExtractorPageProps> = ({ config, onOpenM
       const parsed: GroupParticipant[] = rawParticipants
         .map((p: any) => {
           const jid = p.id || p.jid || '';
-          const phone = jid.split('@')[0];
-          if (!phone || jid.includes('@g.us')) return null;
+          if (jid.includes('@g.us')) return null;
+          
+          // Prefer phoneNumber field, fallback to extracting from JID
+          let phone = p.phoneNumber || jid.split('@')[0] || '';
+          
+          // Clean: remove everything that's not a digit
+          phone = phone.replace(/\D/g, '');
+          
+          if (!phone) return null;
+          
+          // Format Brazilian numbers: ensure country code 55 + DDD + number
+          // If starts with 55 and has 12-13 digits, it's already formatted
+          if (phone.startsWith('55') && (phone.length === 12 || phone.length === 13)) {
+            phone = phone; // already correct
+          } else if (phone.length === 10 || phone.length === 11) {
+            // Has DDD but no country code
+            phone = '55' + phone;
+          } else if (phone.length === 8 || phone.length === 9) {
+            // No DDD, no country code — can't reliably add DDD
+            phone = phone;
+          }
+          
           return { id: jid, name: p.name || p.pushName || phone, phone };
         })
         .filter(Boolean) as GroupParticipant[];
