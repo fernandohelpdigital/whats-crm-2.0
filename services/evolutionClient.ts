@@ -144,9 +144,21 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
         // For contacts, extract phone from @s.whatsapp.net JID
         let phoneNumber = '';
         if (!isGroup) {
-            // Try to find the @s.whatsapp.net JID from mergedIds or rawId
-            const allJids = [rawId, resolvedJid, ...(chat.mergedIds || [])];
-            const sWhatsappJid = allJids.find((j: string) => j?.includes('@s.whatsapp.net'));
+            // Collect all possible JIDs from the chat object to find @s.whatsapp.net
+            const candidateJids: string[] = [
+                rawId,
+                resolvedJid,
+                ...(chat.mergedIds || []),
+                chat.lastMessage?.key?.remoteJid,
+                chat.lastMessage?.key?.remoteJidAlt,
+                chat.key?.remoteJid,
+                chat.key?.remoteJidAlt,
+                chat.remoteJidAlt,
+                chat.participant,
+                chat.owner,
+            ].filter(Boolean);
+            
+            const sWhatsappJid = candidateJids.find((j: string) => j?.includes('@s.whatsapp.net'));
             phoneNumber = sWhatsappJid ? sWhatsappJid.split('@')[0] : resolvedJid.split('@')[0];
         }
         
