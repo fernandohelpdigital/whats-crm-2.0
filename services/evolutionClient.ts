@@ -139,30 +139,7 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
         if (!rawId) return;
 
         const resolvedJid = getValidRemoteJid(chat);
-        const isGroup = resolvedJid.includes('@g.us');
-        
-        // For contacts, extract phone from @s.whatsapp.net JID
-        let phoneNumber = '';
-        if (!isGroup) {
-            // Collect all possible JIDs from the chat object to find @s.whatsapp.net
-            const candidateJids: string[] = [
-                rawId,
-                resolvedJid,
-                ...(chat.mergedIds || []),
-                chat.lastMessage?.key?.remoteJid,
-                chat.lastMessage?.key?.remoteJidAlt,
-                chat.key?.remoteJid,
-                chat.key?.remoteJidAlt,
-                chat.remoteJidAlt,
-                chat.participant,
-                chat.owner,
-            ].filter(Boolean);
-            
-            const sWhatsappJid = candidateJids.find((j: string) => j?.includes('@s.whatsapp.net'));
-            phoneNumber = sWhatsappJid ? sWhatsappJid.split('@')[0] : resolvedJid.split('@')[0];
-        }
-        
-        const identifier = isGroup ? resolvedJid : phoneNumber;
+        const identifier = resolvedJid.includes('@g.us') ? resolvedJid : resolvedJid.split('@')[0];
         const timestampRaw = Number(chat.conversationTimestamp || chat.lastMessageTimestamp) || 0;
         const unreadCount = Number(chat.unreadCount) || Number(chat.count) || 0;
 
@@ -204,7 +181,7 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
                 lastMessageTime: timestampRaw ? new Date(timestampRaw * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '',
                 unreadCount: unreadCount,
                 timestampRaw: timestampRaw,
-                isGroup: isGroup,
+                isGroup: rawId.includes('@g.us'),
                 mergedIds: [rawId]
             });
         }
