@@ -34,6 +34,16 @@ const DEFAULT_FLAGS: FeatureFlags = {
     extractor: false,
 };
 
+const ADMIN_FLAGS: FeatureFlags = {
+    dashboard: true,
+    kanban: true,
+    proposals: true,
+    followup: true,
+    chat: true,
+    contacts: true,
+    extractor: true,
+};
+
 const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const { theme, toggleTheme } = useTheme();
   const { branding } = useBranding();
@@ -58,15 +68,16 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
   // Load feature flags from Supabase (per-user)
   useEffect(() => {
+    let cancelled = false;
     const loadFeatures = async () => {
         if (isAdmin) {
-            setFeatures(DEFAULT_FLAGS);
+            setFeatures(ADMIN_FLAGS);
             return;
         }
 
         try {
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
+          if (!user || cancelled) return;
 
           const { data } = await supabase
             .from('user_feature_flags')
@@ -74,7 +85,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             .eq('user_id', user.id)
             .single();
           
-          if (data) {
+          if (data && !cancelled) {
             const userFlags: FeatureFlags = {
               dashboard: data.dashboard ?? true,
               kanban: data.kanban ?? true,
@@ -85,9 +96,6 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
               extractor: data.extractor ?? false,
             };
             setFeatures(userFlags);
-            if (!userFlags[currentView as keyof FeatureFlags] && currentView !== 'settings' && currentView !== 'admin') {
-              setCurrentView('settings');
-            }
           }
         } catch (e) {
           console.error("Erro ao ler features", e);
@@ -95,7 +103,8 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     };
 
     loadFeatures();
-  }, [isAdmin, currentView]);
+    return () => { cancelled = true; };
+  }, [isAdmin]);
 
   const syncContactsToSupabase = useCallback(async (chatContacts: Contact[]) => {
     try {
