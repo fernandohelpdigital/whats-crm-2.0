@@ -125,12 +125,64 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
     const contactsRaw = Array.isArray(contactsResponse.data) ? contactsResponse.data : (contactsResponse.data?.data || []);
 
     const pushNamesMap = new Map<string, string>();
+    // Build a mapping from @lid JIDs to @s.whatsapp.net JIDs using contacts data
+    const lidToWhatsappMap = new Map<string, string>();
+    
     contactsRaw.forEach((c: any) => {
         const jid = c.id || c.remoteJid;
         if (jid && c.pushName) {
             pushNamesMap.set(jid, c.pushName);
         }
+        // Map lid JIDs to their whatsapp equivalents
+        if (jid && jid.includes('@lid')) {
+            const altJid = c.remoteJidAlt || c.lid;
+            if (altJid && altJid.includes('@s.whatsapp.net')) {
+                lidToWhatsappMap.set(jid, altJid);
+            }
+        }
+        if (jid && jid.includes('@s.whatsapp.net')) {
+            const lidJid = c.lid || c.remoteJidAlt;
+            if (lidJid && lidJid.includes('@lid')) {
+                lidToWhatsappMap.set(lidJid, jid);
+            }
+        }
     });
+
+    // Also scan chats for lid↔whatsapp mappings via lastMessage.key
+    chatsRaw.forEach((chat: any) => {
+        const rawId = chat.remoteJid || chat.id;
+        if (!rawId) return;
+        
+        if (rawId.includes('@lid')) {
+            const altJid = chat.lastMessage?.key?.remoteJidAlt || chat.remoteJidAlt;
+            if (altJid && altJid.includes('@s.whatsapp.net')) {
+                lidToWhatsappMap.set(rawId, altJid);
+            }
+        }
+        if (rawId.includes('@s.whatsapp.net')) {
+            const lidJid = chat.lastMessage?.key?.remoteJidAlt;
+            if (lidJid && lidJid.includes('@lid')) {
+                lidToWhatsappMap.set(lidJid, rawId);
+            }
+        }
+    });
+
+    // Helper: resolve any JID to the phone-based identifier for grouping
+    const resolveToPhoneIdentifier = (jid: string): string => {
+        if (jid.includes('@g.us')) return jid;
+        
+        // If it's a @lid JID, try to find the @s.whatsapp.net equivalent
+        if (jid.includes('@lid')) {
+            const whatsappJid = lidToWhatsappMap.get(jid);
+            if (whatsappJid) {
+                return whatsappJid.split('@')[0];
+            }
+            // Fallback: use the lid prefix (will still group duplicate lid entries)
+            return jid.split('@')[0];
+        }
+        
+        return jid.split('@')[0];
+    };
 
     const groupedChats = new Map<string, Contact>();
 
@@ -139,7 +191,8 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
         if (!rawId) return;
 
         const resolvedJid = getValidRemoteJid(chat);
-        const identifier = resolvedJid.includes('@g.us') ? resolvedJid : resolvedJid.split('@')[0];
+        // Use the phone-based identifier for grouping (resolves @lid to phone number)
+        const identifier = resolveToPhoneIdentifier(resolvedJid);
         const timestampRaw = Number(chat.conversationTimestamp || chat.lastMessageTimestamp) || 0;
         const unreadCount = Number(chat.unreadCount) || Number(chat.count) || 0;
 
@@ -162,6 +215,8 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
         if (groupedChats.has(identifier)) {
             const existing = groupedChats.get(identifier)!;
             if (!existing.mergedIds?.includes(rawId)) existing.mergedIds?.push(rawId);
+            // Also add the resolved JID if different
+            if (resolvedJid !== rawId && !existing.mergedIds?.includes(resolvedJid)) existing.mergedIds?.push(resolvedJid);
 
             if (timestampRaw > (existing.timestampRaw || 0)) {
                 existing.lastMessage = lastMessageText || existing.lastMessage;
@@ -170,10 +225,24 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
                 existing.name = pushName; 
             }
             existing.unreadCount = (existing.unreadCount || 0) + unreadCount;
-            if (rawId.includes('@s.whatsapp.net') && !existing.id.includes('@s.whatsapp.net')) existing.id = rawId; 
+            // Always prefer @s.whatsapp.net as the primary ID
+            if (rawId.includes('@s.whatsapp.net') && !existing.id.includes('@s.whatsapp.net')) existing.id = rawId;
+            // Update number to phone-based if we resolved a lid
+            if (!existing.number.match(/^\d+$/) && identifier.match(/^\d+$/)) existing.number = identifier;
         } else {
+            // For the primary ID, prefer @s.whatsapp.net
+            let primaryId = rawId;
+            if (rawId.includes('@lid')) {
+                const whatsappJid = lidToWhatsappMap.get(rawId);
+                if (whatsappJid) primaryId = whatsappJid;
+            }
+            
+            const mergedIds = [rawId];
+            if (resolvedJid !== rawId && !mergedIds.includes(resolvedJid)) mergedIds.push(resolvedJid);
+            if (primaryId !== rawId && !mergedIds.includes(primaryId)) mergedIds.push(primaryId);
+            
             groupedChats.set(identifier, {
-                id: rawId,
+                id: primaryId,
                 name: pushName,
                 number: identifier,
                 avatarUrl: chat.profilePictureUrl,
@@ -182,7 +251,7 @@ export const fetchChats = async (config: AuthConfig): Promise<Contact[]> => {
                 unreadCount: unreadCount,
                 timestampRaw: timestampRaw,
                 isGroup: rawId.includes('@g.us'),
-                mergedIds: [rawId]
+                mergedIds: mergedIds
             });
         }
     });
