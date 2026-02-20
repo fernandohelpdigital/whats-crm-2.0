@@ -71,7 +71,7 @@ const GroupExtractorPage: React.FC<GroupExtractorPageProps> = ({ config, onOpenM
 
     try {
       // Fetch participants
-      const url = `${cleanUrl(config.baseUrl)}/group/participants/${config.instanceName}?groupJid=${groupId}`;
+      const url = `${cleanUrl(config.baseUrl)}/group/findGroupInfos/${config.instanceName}?groupJid=${encodeURIComponent(groupId)}`;
       const response = await axios.get(url, {
         headers: { 'apikey': config.apiKey }
       });
