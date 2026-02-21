@@ -24,19 +24,39 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
   const { user, profile, refreshProfile, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'connection' | 'notifications' | 'debug'>('profile');
   
-  // Notification settings
-  const [notifEnabled, setNotifEnabled] = useState(() => {
-    const saved = localStorage.getItem('notif_enabled');
-    return saved !== null ? saved === 'true' : true;
-  });
-  const [notifVolume, setNotifVolume] = useState(() => {
-    const saved = localStorage.getItem('notif_volume');
-    return saved !== null ? parseFloat(saved) : 0.5;
-  });
-  const [notifSound, setNotifSound] = useState(() => {
-    return localStorage.getItem('notif_sound') || 'default';
-  });
+  // Notification settings (loaded from DB)
+  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [notifVolume, setNotifVolume] = useState(0.5);
+  const [notifSound, setNotifSound] = useState('default');
+  const [savingNotif, setSavingNotif] = useState(false);
+  const [notifLoaded, setNotifLoaded] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Load notification settings from Supabase
+  useEffect(() => {
+    let cancelled = false;
+    const loadNotifSettings = async () => {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u || cancelled) return;
+      const { data } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .eq('user_id', u.id)
+        .single();
+      if (data && !cancelled) {
+        setNotifEnabled(data.enabled);
+        setNotifVolume(Number(data.volume));
+        setNotifSound(data.sound_type);
+        // Sync to localStorage for ChatDashboard
+        localStorage.setItem('notif_enabled', String(data.enabled));
+        localStorage.setItem('notif_volume', String(data.volume));
+        localStorage.setItem('notif_sound', data.sound_type);
+      }
+      if (!cancelled) setNotifLoaded(true);
+    };
+    loadNotifSettings();
+    return () => { cancelled = true; };
+  }, []);
   
   // Profile form
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
@@ -385,7 +405,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
               </h2>
               <div className="space-y-6">
                 
-                {/* Toggle Ativar/Desativar */}
+                {/* Toggle */}
                 <div className="flex items-center justify-between p-4 bg-[#f0f2f5] dark:bg-[#111b21] rounded-lg border border-border">
                   <div className="flex items-center gap-3">
                     {notifEnabled ? <Volume2 className="w-5 h-5 text-[#00a884]" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
@@ -395,11 +415,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => {
-                      const newVal = !notifEnabled;
-                      setNotifEnabled(newVal);
-                      localStorage.setItem('notif_enabled', String(newVal));
-                    }}
+                    onClick={() => setNotifEnabled(!notifEnabled)}
                     className={`relative w-12 h-7 rounded-full transition-colors ${notifEnabled ? 'bg-[#00a884]' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
                     <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${notifEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -417,11 +433,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                       max="1"
                       step="0.05"
                       value={notifVolume}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setNotifVolume(val);
-                        localStorage.setItem('notif_volume', String(val));
-                      }}
+                      onChange={(e) => setNotifVolume(parseFloat(e.target.value))}
                       disabled={!notifEnabled}
                       className="flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-[#00a884] bg-gray-200 dark:bg-gray-700 disabled:opacity-40"
                     />
@@ -429,47 +441,97 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                   </div>
                 </div>
 
-                {/* Escolha de som */}
+                {/* Sound choices */}
                 <div className="space-y-3">
                   <label className="text-xs font-bold uppercase text-muted-foreground">Tipo de Som</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {[
-                      { id: 'default', label: 'Padrão', desc: 'Tom curto' },
-                      { id: 'soft', label: 'Suave', desc: 'Tom suave' },
-                      { id: 'alert', label: 'Alerta', desc: 'Tom forte' },
+                      { id: 'default', label: 'Padrão', desc: 'Tom curto', icon: '🔔' },
+                      { id: 'soft', label: 'Suave', desc: 'Tom leve', icon: '🔕' },
+                      { id: 'alert', label: 'Alerta', desc: 'Tom forte', icon: '🚨' },
+                      { id: 'chime', label: 'Sino', desc: 'Campainha', icon: '🛎️' },
+                      { id: 'pop', label: 'Pop', desc: 'Bolha', icon: '💬' },
+                      { id: 'ding', label: 'Ding', desc: 'Toque rápido', icon: '✨' },
+                      { id: 'whistle', label: 'Apito', desc: 'Apito curto', icon: '📢' },
+                      { id: 'drop', label: 'Gota', desc: 'Som de gota', icon: '💧' },
+                      { id: 'marimba', label: 'Marimba', desc: 'Tom musical', icon: '🎵' },
                     ].map((sound) => (
                       <button
                         key={sound.id}
                         onClick={() => {
                           setNotifSound(sound.id);
+                          // Preview the sound
                           localStorage.setItem('notif_sound', sound.id);
+                          localStorage.setItem('notif_volume', String(notifVolume));
+                          localStorage.setItem('notif_enabled', 'true');
+                          const event = new CustomEvent('test-notification-sound');
+                          window.dispatchEvent(event);
                         }}
                         disabled={!notifEnabled}
-                        className={`p-4 rounded-lg border-2 text-left transition-all disabled:opacity-40 ${
+                        className={`p-3 rounded-lg border-2 text-left transition-all disabled:opacity-40 ${
                           notifSound === sound.id
                             ? 'border-[#00a884] bg-[#00a884]/5'
                             : 'border-border hover:border-[#00a884]/50'
                         }`}
                       >
-                        <p className="font-bold text-sm">{sound.label}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-lg">{sound.icon}</span>
+                          <p className="font-bold text-sm">{sound.label}</p>
+                        </div>
                         <p className="text-xs text-muted-foreground">{sound.desc}</p>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Testar som */}
-                <Button
-                  onClick={() => {
-                    const event = new CustomEvent('test-notification-sound');
-                    window.dispatchEvent(event);
-                  }}
-                  disabled={!notifEnabled}
-                  variant="outline"
-                  className="gap-2 h-11 font-bold"
-                >
-                  <Volume2 className="w-4 h-4" /> Testar Som
-                </Button>
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={async () => {
+                      if (!user) return;
+                      setSavingNotif(true);
+                      try {
+                        const settingsData = {
+                          user_id: user.id,
+                          enabled: notifEnabled,
+                          volume: notifVolume,
+                          sound_type: notifSound,
+                        };
+                        const { error } = await supabase
+                          .from('notification_settings')
+                          .upsert(settingsData, { onConflict: 'user_id' });
+                        if (error) throw error;
+                        // Sync to localStorage
+                        localStorage.setItem('notif_enabled', String(notifEnabled));
+                        localStorage.setItem('notif_volume', String(notifVolume));
+                        localStorage.setItem('notif_sound', notifSound);
+                        toast.success('Configurações de notificação salvas!');
+                      } catch (e: any) {
+                        toast.error('Erro ao salvar: ' + e.message);
+                      } finally {
+                        setSavingNotif(false);
+                      }
+                    }}
+                    disabled={savingNotif}
+                    className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-6 gap-2"
+                  >
+                    <Save className="w-4 h-4" /> {savingNotif ? 'Salvando...' : 'Salvar Configurações'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      localStorage.setItem('notif_enabled', String(notifEnabled));
+                      localStorage.setItem('notif_volume', String(notifVolume));
+                      localStorage.setItem('notif_sound', notifSound);
+                      const event = new CustomEvent('test-notification-sound');
+                      window.dispatchEvent(event);
+                    }}
+                    disabled={!notifEnabled}
+                    variant="outline"
+                    className="gap-2 h-11 font-bold"
+                  >
+                    <Volume2 className="w-4 h-4" /> Testar Som
+                  </Button>
+                </div>
 
               </div>
             </Card>
