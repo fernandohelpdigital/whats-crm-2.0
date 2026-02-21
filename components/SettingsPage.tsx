@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthConfig } from '../types';
 import { Button, Card, Input } from './ui/Shared';
-import { QrCode, Wifi, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings as SettingsIcon, Terminal, Activity, Trash2, PauseCircle, PlayCircle, Save, User } from 'lucide-react';
+import { QrCode, Wifi, RefreshCw, Smartphone, CheckCircle2, AlertCircle, Settings as SettingsIcon, Terminal, Activity, Trash2, PauseCircle, PlayCircle, Save, User, Volume2, VolumeX, Bell } from 'lucide-react';
 import { connectInstance, fetchConnectionState } from '../services/evolutionClient';
 import { getSocket, subscribeToAllEvents } from '../services/socketClient';
 import toast from 'react-hot-toast';
@@ -22,7 +22,21 @@ interface LogEntry {
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
   const { user, profile, refreshProfile, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'connection' | 'debug'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'connection' | 'notifications' | 'debug'>('profile');
+  
+  // Notification settings
+  const [notifEnabled, setNotifEnabled] = useState(() => {
+    const saved = localStorage.getItem('notif_enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [notifVolume, setNotifVolume] = useState(() => {
+    const saved = localStorage.getItem('notif_volume');
+    return saved !== null ? parseFloat(saved) : 0.5;
+  });
+  const [notifSound, setNotifSound] = useState(() => {
+    return localStorage.getItem('notif_sound') || 'default';
+  });
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Profile form
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
@@ -167,7 +181,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
         </div>
         
         {/* Tabs */}
-        <div className="flex p-1 bg-white dark:bg-[#202c33] rounded-lg border border-border">
+        <div className="flex p-1 bg-white dark:bg-[#202c33] rounded-lg border border-border flex-wrap gap-1">
             <button 
                 onClick={() => setActiveTab('profile')}
                 className={`px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'bg-[#00a884] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
@@ -179,6 +193,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                 className={`px-4 py-2 rounded-md text-sm font-bold transition-colors ${activeTab === 'connection' ? 'bg-[#00a884] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
             >
                 Conexão
+            </button>
+            <button 
+                onClick={() => setActiveTab('notifications')}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2 ${activeTab === 'notifications' ? 'bg-[#00a884] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+            >
+                <Bell className="w-4 h-4" /> Notificações
             </button>
             <button 
                 onClick={() => setActiveTab('debug')}
@@ -354,6 +374,106 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ config }) => {
                     )}
                 </Card>
              </div>
+        )}
+
+        {/* NOTIFICATIONS TAB */}
+        {activeTab === 'notifications' && (
+          <div className="flex justify-center pt-4">
+            <Card className="w-full max-w-2xl p-6 border-none shadow-md bg-white dark:bg-[#202c33] animate-slide-up">
+              <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-primary" /> Notificações de Mensagens
+              </h2>
+              <div className="space-y-6">
+                
+                {/* Toggle Ativar/Desativar */}
+                <div className="flex items-center justify-between p-4 bg-[#f0f2f5] dark:bg-[#111b21] rounded-lg border border-border">
+                  <div className="flex items-center gap-3">
+                    {notifEnabled ? <Volume2 className="w-5 h-5 text-[#00a884]" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
+                    <div>
+                      <p className="font-bold text-sm">Som de Notificação</p>
+                      <p className="text-xs text-muted-foreground">Tocar som ao receber mensagens de chats não abertos</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newVal = !notifEnabled;
+                      setNotifEnabled(newVal);
+                      localStorage.setItem('notif_enabled', String(newVal));
+                    }}
+                    className={`relative w-12 h-7 rounded-full transition-colors ${notifEnabled ? 'bg-[#00a884]' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${notifEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {/* Volume */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Volume ({Math.round(notifVolume * 100)}%)</label>
+                  <div className="flex items-center gap-3">
+                    <VolumeX className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={notifVolume}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setNotifVolume(val);
+                        localStorage.setItem('notif_volume', String(val));
+                      }}
+                      disabled={!notifEnabled}
+                      className="flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-[#00a884] bg-gray-200 dark:bg-gray-700 disabled:opacity-40"
+                    />
+                    <Volume2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </div>
+
+                {/* Escolha de som */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold uppercase text-muted-foreground">Tipo de Som</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: 'default', label: 'Padrão', desc: 'Tom curto' },
+                      { id: 'soft', label: 'Suave', desc: 'Tom suave' },
+                      { id: 'alert', label: 'Alerta', desc: 'Tom forte' },
+                    ].map((sound) => (
+                      <button
+                        key={sound.id}
+                        onClick={() => {
+                          setNotifSound(sound.id);
+                          localStorage.setItem('notif_sound', sound.id);
+                        }}
+                        disabled={!notifEnabled}
+                        className={`p-4 rounded-lg border-2 text-left transition-all disabled:opacity-40 ${
+                          notifSound === sound.id
+                            ? 'border-[#00a884] bg-[#00a884]/5'
+                            : 'border-border hover:border-[#00a884]/50'
+                        }`}
+                      >
+                        <p className="font-bold text-sm">{sound.label}</p>
+                        <p className="text-xs text-muted-foreground">{sound.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Testar som */}
+                <Button
+                  onClick={() => {
+                    const event = new CustomEvent('test-notification-sound');
+                    window.dispatchEvent(event);
+                  }}
+                  disabled={!notifEnabled}
+                  variant="outline"
+                  className="gap-2 h-11 font-bold"
+                >
+                  <Volume2 className="w-4 h-4" /> Testar Som
+                </Button>
+
+              </div>
+            </Card>
+          </div>
         )}
 
         {/* DEBUG TAB */}
