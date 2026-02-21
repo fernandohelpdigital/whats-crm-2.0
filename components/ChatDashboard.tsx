@@ -61,6 +61,30 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   // Feature Flags State
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FLAGS);
   const contactsRef = useRef<Contact[]>([]);
+  
+  // Track which contact chat is currently open
+  const selectedChatContactIdRef = useRef<string | null>(null);
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize notification sound
+  useEffect(() => {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1qgHiNeIxze2d0hICLh4B2bHZ9f4+FhXx0dHx7g4SLg316dn15gIOHiYF6dXZ7foOGhoJ9d3V4e4GEh4WAe3d2eX2BhIaBf3x4eHp+gYODgYB8eHl7foGDg4KAf3x5enx+gYKDgoGAfnx6e31/gYKCgYCAfn17fH5/gIGBgYGAf357fH1+f4CBgYGBgH9+fXx9fn+AgIGBgYCAf35+fX1+f4CAgICBgICAf39+fn5/f4CAgICAgICAgH9/f39/f4CAgICAgICAgH9/f39/f4CAgA==');
+    audio.volume = 0.5;
+    notificationAudioRef.current = audio;
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    try {
+      if (notificationAudioRef.current) {
+        notificationAudioRef.current.currentTime = 0;
+        notificationAudioRef.current.play().catch(() => {});
+      }
+    } catch {}
+  }, []);
+
+  const handleChatContactSelect = useCallback((contactId: string | null) => {
+    selectedChatContactIdRef.current = contactId;
+  }, []);
 
   useEffect(() => {
     contactsRef.current = contacts;
@@ -226,6 +250,18 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         else if (messageContent.videoMessage) previewText = '🎥 Vídeo';
         else if (messageContent.documentMessage) previewText = '📄 Arquivo';
         else if (messageContent.stickerMessage) previewText = '👾 Sticker';
+
+        // Play notification sound if message is not from me and chat is not open for this contact
+        if (!fromMe) {
+          const openContactId = selectedChatContactIdRef.current;
+          const openPhone = openContactId?.split('@')[0];
+          const isCurrentChatOpen = openContactId && (
+            openContactId === remoteJid || openPhone === normalizedRemoteJid
+          );
+          if (!isCurrentChatOpen) {
+            playNotificationSound();
+          }
+        }
 
         setContacts((prevContacts) => {
             const existingIndex = prevContacts.findIndex(c => 
@@ -508,6 +544,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                         onLogout={async () => { await signOut(); }}
                         onMarkAsRead={handleMarkAsRead}
                         onRefresh={() => refreshData(false)}
+                        onSelectContact={handleChatContactSelect}
                     />
                 ) : currentView === 'kanban' && features.kanban && config ? (
                     <SalesKanban 

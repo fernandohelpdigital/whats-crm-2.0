@@ -13,20 +13,23 @@ interface ChatPageProps {
   onLogout: () => void;
   onMarkAsRead?: (contactId: string) => void;
   onRefresh?: () => void;
+  onSelectContact?: (contactId: string | null) => void;
 }
 
-const ChatPage: React.FC<ChatPageProps> = ({ contacts, config, onOpenMenu, onLogout, onMarkAsRead, onRefresh }) => {
+const ChatPage: React.FC<ChatPageProps> = ({ contacts, config, onOpenMenu, onLogout, onMarkAsRead, onRefresh, onSelectContact }) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactInfo, setShowContactInfo] = useState(false);
 
   // Lógica para lidar com seleção em mobile vs desktop
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
-    setShowContactInfo(false); // Reseta info ao trocar de chat
+    setShowContactInfo(false);
+    onSelectContact?.(contact.id);
   };
 
   const handleBackToContacts = () => {
     setSelectedContact(null);
+    onSelectContact?.(null);
   };
 
   return (
