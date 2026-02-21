@@ -71,7 +71,34 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     default: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1qgHiNeIxze2d0hICLh4B2bHZ9f4+FhXx0dHx7g4SLg316dn15gIOHiYF6dXZ7foOGhoJ9d3V4e4GEh4WAe3d2eX2BhIaBf3x4eHp+gYODgYB8eHl7foGDg4KAf3x5enx+gYKDgoGAfnx6e31/gYKCgYCAfn17fH5/gIGBgYGAf357fH1+f4CBgYGBgH9+fXx9fn+AgIGBgYCAf35+fX1+f4CAgICBgICAf39+fn5/f4CAgICAgICAgH9/f39/f4CAgICAgICAgH9/f39/f4CAgA==',
     soft: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoODg4KBgH+AgYKDg4OCgYB/f4CBgoODg4KBgH9/gIGCg4ODgoGAf3+AgYKDg4OCgYB/f4CBgoODg4KBgH9/gIGCg4ODgoGAf3+AgYKDg4OCgYCAf4CBgoODg4KBgIB/gIGCg4ODgoGAgH+AgYKDg4OCgYCAf4CBgoKDg4KBgIB/gIGCgoODgoGAgH+AgYKCg4OCgYCAf4CBgoKDg4KBgIB/gIGCgoODgoGAgH+AgYKCg4OCgYCAf4CBgoKDg4KBgIB/gIGCgoODgoGAgH+AgYKCg4OCgYCAgA==',
     alert: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAAB/k2aBm3OGl3iLk3yPhH2SgIaPe46HfI6IfI6GfY2IfI2HfY2IfI2HfY2IfI2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfA==',
+    chime: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAj3+Qf4+Af5B/j4CAj3+Qf4+Af5CAj3+Qf4+AgI9/kH+PgICPf5B/j4CAkH+Pf5CAgI9/kH+PgICQf49/kICAj3+Qf4+AgJB/j3+QgICPf5B/j4CAkH+Pf5CAgI9/kH+PgICQf49/kICAj3+Qf4+AgJB/j3+QgICPf5B/j4CAkH+Pf5CAgI9/kH+PgICQf49/kICAj3+Qf4+AgJB/j3+QgICPf5B/j4CAkH+Pf5CAgI9/kH+PgICQf49/kICAj3+Qf4+AgJB/j3+QgICPgA==',
+    pop: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAn2Cgn2CgoJ9goJ+AoJ9goKBgoJ9goKCAn2CgoGCgn2CgoICfYKCgYKCfYKCggJ9goKBgoJ9goKCAn2CgoGCgn2CgoICfYKCgYKCfYKCggJ9goKBgoJ9goKCAn2CgoGCgn2CgoICfYKCgYKCfYKCggJ9goKBgoJ9goKCAn2CgoGCgn2CgoICfYKCgYKCfYKCggJ9goKBgoJ9goKCAn2CgoGCgn2CgoICfYKCgYKCfYKCggJ9goKBgoJ9goKCAn2CgoGCgn2CgoICfYA==',
+    ding: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAqFiof6hYqICnWKh/qFiogKdYqH+oWKiAp1iof6hYqICnWKh/qFiogKhYp3+oWKiAqFinfqhYqICoWKd/qFiogKhYp3+oWKiAqFinfqhZqICoWKd/qFiogKhYp3+oWKiAqFinfqhZqICoWKd/qFiogKhYp3+oWKiAqFinfqhZqICoWKd/qFiogKhYp3+oWaiAp1inf6hZqICoWKd/qFiogKhYp3+oWaiAp1inf6hZqICoWKd/qFiogKhYp3+oWaiAp1inf6hZqICoWKd/qFiogKhYpw==',
+    whistle: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAsmiyf7Josn+yaLKAsGiyf7Josn+yaLKAsmiyf7JosoGyaLJ/smiyf7JosoGyaLJ/smiygLJosn+yaLKBsmiyf7Josn+yaLKBsmiyf7JosoGyaLJ/smiygLJosn+yaLKBsmiyf7Josn+yaLKBsmiyf7JosoGyaLJ/smiygLJosn+yaLKBsmiyf7Josn+yaLKBsmiyf7JosoGyaLJ/smiygLJosn+yaLKBsmiyf7Josn+yaLKBsmiyf7JosoGyaLJ/smiygLJosn+yaLKBsmiyf7JosoGyaLJ/smiygA==',
+    drop: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAhISEhISEhISEhISEhISEgISEhISEhISEhISEhISEhICEhISEhISEhISEhISDhISBhISEhISEhISEhISEg4SEgYSEhISEhISEhISEhIOEhIGEhISEhISEhISEhISDhISBhISEhISEhISEhISEg4SEgYSEhISEhISEhISEhIOEhIGEhISEhISEhISEhISDhISBhISEhISEhISEhISEg4SEgYSEhISEhISEhISEhIOEhIGEhISEhISEhISEhISDhISBhISEhISEhISEhISEg4SEgYSEhISEhISEhISEhIOEhA==',
+    marimba: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAlHyUf5R8lICTfJR/lHyUgJN8lH+UfJSAk3yUf5R8lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R8lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R9lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R9lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R9lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R9lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R9lICUfJN/lHyUgJR8k3+UfJSAlHyTf5R9lICUfJN/lHyUgJR8kw==',
   };
+
+  // Load notification settings from Supabase on mount, then sync to localStorage
+  useEffect(() => {
+    const loadFromDb = async () => {
+      try {
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (!u) return;
+        const { data } = await supabase
+          .from('notification_settings')
+          .select('*')
+          .eq('user_id', u.id)
+          .single();
+        if (data) {
+          localStorage.setItem('notif_enabled', String(data.enabled));
+          localStorage.setItem('notif_volume', String(data.volume));
+          localStorage.setItem('notif_sound', data.sound_type);
+        }
+      } catch {}
+    };
+    loadFromDb();
+  }, []);
 
   // Initialize and update notification sound based on localStorage
   useEffect(() => {
@@ -92,7 +119,6 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
     updateAudio();
 
-    // Listen for test sound event from settings
     const handleTestSound = () => {
       updateAudio();
       if (notificationAudioRef.current) {
@@ -101,7 +127,6 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
       }
     };
 
-    // Listen for storage changes (same tab won't fire 'storage', so use custom event)
     window.addEventListener('test-notification-sound', handleTestSound);
     window.addEventListener('storage', updateAudio);
     
@@ -113,7 +138,6 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
   const playNotificationSound = useCallback(() => {
     try {
-      // Re-read settings each time to pick up changes
       const enabled = localStorage.getItem('notif_enabled') !== 'false';
       if (!enabled) return;
       

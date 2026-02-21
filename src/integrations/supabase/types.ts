@@ -233,6 +233,36 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          sound_type: string
+          updated_at: string
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          sound_type?: string
+          updated_at?: string
+          user_id: string
+          volume?: number
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          sound_type?: string
+          updated_at?: string
+          user_id?: string
+          volume?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           api_key: string | null
