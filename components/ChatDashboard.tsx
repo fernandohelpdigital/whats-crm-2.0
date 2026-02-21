@@ -66,19 +66,64 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const selectedChatContactIdRef = useRef<string | null>(null);
   const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize notification sound
-  useEffect(() => {
-    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1qgHiNeIxze2d0hICLh4B2bHZ9f4+FhXx0dHx7g4SLg316dn15gIOHiYF6dXZ7foOGhoJ9d3V4e4GEh4WAe3d2eX2BhIaBf3x4eHp+gYODgYB8eHl7foGDg4KAf3x5enx+gYKDgoGAfnx6e31/gYKCgYCAfn17fH5/gIGBgYGAf357fH1+f4CBgYGBgH9+fXx9fn+AgIGBgYCAf35+fX1+f4CAgICBgICAf39+fn5/f4CAgICAgICAgH9/f39/f4CAgICAgICAgH9/f39/f4CAgA==');
-    audio.volume = 0.5;
-    notificationAudioRef.current = audio;
-  }, []);
+  // Notification sound sources by type
+  const NOTIFICATION_SOUNDS: Record<string, string> = {
+    default: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1qgHiNeIxze2d0hICLh4B2bHZ9f4+FhXx0dHx7g4SLg316dn15gIOHiYF6dXZ7foOGhoJ9d3V4e4GEh4WAe3d2eX2BhIaBf3x4eHp+gYODgYB8eHl7foGDg4KAf3x5enx+gYKDgoGAfnx6e31/gYKCgYCAfn17fH5/gIGBgYGAf357fH1+f4CBgYGBgH9+fXx9fn+AgIGBgYCAf35+fX1+f4CAgICBgICAf39+fn5/f4CAgICAgICAgH9/f39/f4CAgICAgICAgH9/f39/f4CAgA==',
+    soft: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoODg4KBgH+AgYKDg4OCgYB/f4CBgoODg4KBgH9/gIGCg4ODgoGAf3+AgYKDg4OCgYB/f4CBgoODg4KBgH9/gIGCg4ODgoGAf3+AgYKDg4OCgYCAf4CBgoODg4KBgIB/gIGCg4ODgoGAgH+AgYKDg4OCgYCAf4CBgoKDg4KBgIB/gIGCgoODgoGAgH+AgYKCg4OCgYCAf4CBgoKDg4KBgIB/gIGCgoODgoGAgH+AgYKCg4OCgYCAf4CBgoKDg4KBgIB/gIGCgoODgoGAgH+AgYKCg4OCgYCAgA==',
+    alert: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAAB/k2aBm3OGl3iLk3yPhH2SgIaPe46HfI6IfI6GfY2IfI2HfY2IfI2HfY2IfI2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfI2HfY2IfY2HfY2IfY2HfY2HfY2IfY2HfY2IfY2HfY6HfA==',
+  };
 
-  const playNotificationSound = useCallback(() => {
-    try {
+  // Initialize and update notification sound based on localStorage
+  useEffect(() => {
+    const updateAudio = () => {
+      const enabled = localStorage.getItem('notif_enabled') !== 'false';
+      const volume = parseFloat(localStorage.getItem('notif_volume') || '0.5');
+      const soundType = localStorage.getItem('notif_sound') || 'default';
+      
+      if (enabled) {
+        const src = NOTIFICATION_SOUNDS[soundType] || NOTIFICATION_SOUNDS.default;
+        const audio = new Audio(src);
+        audio.volume = Math.max(0, Math.min(1, volume));
+        notificationAudioRef.current = audio;
+      } else {
+        notificationAudioRef.current = null;
+      }
+    };
+
+    updateAudio();
+
+    // Listen for test sound event from settings
+    const handleTestSound = () => {
+      updateAudio();
       if (notificationAudioRef.current) {
         notificationAudioRef.current.currentTime = 0;
         notificationAudioRef.current.play().catch(() => {});
       }
+    };
+
+    // Listen for storage changes (same tab won't fire 'storage', so use custom event)
+    window.addEventListener('test-notification-sound', handleTestSound);
+    window.addEventListener('storage', updateAudio);
+    
+    return () => {
+      window.removeEventListener('test-notification-sound', handleTestSound);
+      window.removeEventListener('storage', updateAudio);
+    };
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    try {
+      // Re-read settings each time to pick up changes
+      const enabled = localStorage.getItem('notif_enabled') !== 'false';
+      if (!enabled) return;
+      
+      const volume = parseFloat(localStorage.getItem('notif_volume') || '0.5');
+      const soundType = localStorage.getItem('notif_sound') || 'default';
+      const src = NOTIFICATION_SOUNDS[soundType] || NOTIFICATION_SOUNDS.default;
+      
+      const audio = new Audio(src);
+      audio.volume = Math.max(0, Math.min(1, volume));
+      audio.play().catch(() => {});
     } catch {}
   }, []);
 
