@@ -14,6 +14,7 @@ const AuthScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [form, setForm] = useState({ email: '', password: '', displayName: '' });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
