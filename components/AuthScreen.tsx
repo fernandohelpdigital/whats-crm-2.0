@@ -21,6 +21,27 @@ const AuthScreen: React.FC = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.email) {
+      toast.error('Informe seu e-mail.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
+        redirectTo: `${window.location.origin}#type=recovery`,
+      });
+      if (error) throw error;
+      toast.success('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao enviar e-mail de recuperação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.email || !form.password) {
@@ -48,8 +69,6 @@ const AuthScreen: React.FC = () => {
         const newUserId = signUpData?.user?.id;
         if (newUserId) {
           toast.success('Conta criada! Criando sua instância...');
-          
-          // Call edge function directly without auth (uses service role internally)
           const res = await supabase.functions.invoke('create-user-instance', {
             body: {
               user_id: newUserId,
@@ -57,7 +76,6 @@ const AuthScreen: React.FC = () => {
               token: form.password,
             },
           });
-
           if (res.error || res.data?.error) {
             console.error('Instance creation error:', res.error || res.data?.error);
             toast.error('Conta criada, mas houve erro ao criar a instância. Contate o suporte.');
