@@ -14,10 +14,32 @@ const AuthScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [form, setForm] = useState({ email: '', password: '', displayName: '' });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.email) {
+      toast.error('Informe seu e-mail.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
+        redirectTo: `${window.location.origin}#type=recovery`,
+      });
+      if (error) throw error;
+      toast.success('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao enviar e-mail de recuperação.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,8 +69,6 @@ const AuthScreen: React.FC = () => {
         const newUserId = signUpData?.user?.id;
         if (newUserId) {
           toast.success('Conta criada! Criando sua instância...');
-          
-          // Call edge function directly without auth (uses service role internally)
           const res = await supabase.functions.invoke('create-user-instance', {
             body: {
               user_id: newUserId,
@@ -56,7 +76,6 @@ const AuthScreen: React.FC = () => {
               token: form.password,
             },
           });
-
           if (res.error || res.data?.error) {
             console.error('Instance creation error:', res.error || res.data?.error);
             toast.error('Conta criada, mas houve erro ao criar a instância. Contate o suporte.');
@@ -145,113 +164,175 @@ const AuthScreen: React.FC = () => {
                     />
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                    {isSignUp ? 'Criar sua conta' : 'Acesse sua conta'}
+                    {isForgotPassword ? 'Recuperar senha' : isSignUp ? 'Criar sua conta' : 'Acesse sua conta'}
                 </h1>
                 <p className="text-muted-foreground text-sm md:text-base">
-                    Bem-vindo ao ecossistema {branding.systemName}.
+                    {isForgotPassword 
+                      ? 'Informe seu e-mail para receber o link de recuperação.'
+                      : `Bem-vindo ao ecossistema ${branding.systemName}.`
+                    }
                 </p>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                    
-                    {isSignUp && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="displayName">Nome</label>
-                        <div className="relative group">
-                            <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
-                                <User className="h-5 w-5" />
-                            </div>
-                            <Input 
-                                id="displayName"
-                                name="displayName" 
-                                placeholder="Seu nome" 
-                                value={form.displayName} 
-                                onChange={handleChange}
-                                className="h-12 pl-11 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
-                            />
-                        </div>
+            {isForgotPassword ? (
+              <>
+                <form onSubmit={handleForgotPassword} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="forgot-email">E-mail</label>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                        <Mail className="h-5 w-5" />
                       </div>
-                    )}
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="email">E-mail</label>
-                        <div className="relative group">
-                            <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
-                                <Mail className="h-5 w-5" />
-                            </div>
-                            <Input 
-                                id="email"
-                                name="email" 
-                                type="email"
-                                placeholder="seu@email.com" 
-                                value={form.email} 
-                                onChange={handleChange}
-                                className="h-12 pl-11 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
-                            />
-                        </div>
+                      <Input
+                        id="forgot-email"
+                        name="email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={form.email}
+                        onChange={handleChange}
+                        className="h-12 pl-11 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
+                      />
                     </div>
+                  </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium" htmlFor="password">Senha</label>
-                        <div className="relative group">
-                            <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
-                                <Lock className="h-5 w-5" />
-                            </div>
-                            <Input 
-                                id="password"
-                                name="password" 
-                                type={showPassword ? "text" : "password"}
-                                placeholder="••••••••" 
-                                value={form.password} 
-                                onChange={handleChange} 
-                                className="h-12 pl-11 pr-10 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
-                            >
-                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={loading}
                     className="w-full h-12 rounded-lg bg-[#F05A22] hover:bg-[#D94E1B] text-white font-bold text-base shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] border-none"
-                >
+                  >
                     {loading ? (
-                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        {isSignUp ? 'Criando conta...' : 'Entrando...'}
-                    </div>
+                        Enviando...
+                      </div>
                     ) : (
-                    <div className="flex items-center justify-center gap-2">
-                        {isSignUp ? 'Criar Conta' : 'Entrar no Sistema'} <ChevronRight className="h-5 w-5" />
-                    </div>
+                      'Enviar link de recuperação'
                     )}
-                </Button>
-            </form>
+                  </Button>
+                </form>
 
-            {/* Toggle Sign In / Sign Up */}
-            <div className="pt-6 text-center border-t border-border">
-                <p className="text-sm text-muted-foreground">
-                    {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}{' '}
-                    <button 
-                        onClick={() => setIsSignUp(!isSignUp)} 
-                        className="text-primary hover:underline font-semibold"
+                <div className="pt-6 text-center border-t border-border">
+                  <button
+                    onClick={() => setIsForgotPassword(false)}
+                    className="text-primary hover:underline font-semibold text-sm"
+                  >
+                    Voltar ao login
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-4">
+                        
+                        {isSignUp && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="displayName">Nome</label>
+                            <div className="relative group">
+                                <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                                    <User className="h-5 w-5" />
+                                </div>
+                                <Input 
+                                    id="displayName"
+                                    name="displayName" 
+                                    placeholder="Seu nome" 
+                                    value={form.displayName} 
+                                    onChange={handleChange}
+                                    className="h-12 pl-11 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
+                                />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium" htmlFor="email">E-mail</label>
+                            <div className="relative group">
+                                <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                                    <Mail className="h-5 w-5" />
+                                </div>
+                                <Input 
+                                    id="email"
+                                    name="email" 
+                                    type="email"
+                                    placeholder="seu@email.com" 
+                                    value={form.email} 
+                                    onChange={handleChange}
+                                    className="h-12 pl-11 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-medium" htmlFor="password">Senha</label>
+                              {!isSignUp && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsForgotPassword(true)}
+                                  className="text-xs text-primary hover:underline"
+                                >
+                                  Esqueci minha senha
+                                </button>
+                              )}
+                            </div>
+                            <div className="relative group">
+                                <div className="absolute left-3 top-3.5 text-muted-foreground group-focus-within:text-primary transition-colors">
+                                    <Lock className="h-5 w-5" />
+                                </div>
+                                <Input 
+                                    id="password"
+                                    name="password" 
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••" 
+                                    value={form.password} 
+                                    onChange={handleChange} 
+                                    className="h-12 pl-11 pr-10 bg-muted/30 border-input focus:bg-background focus:ring-[#F05A22] focus:border-[#F05A22] transition-all rounded-lg"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        disabled={loading}
+                        className="w-full h-12 rounded-lg bg-[#F05A22] hover:bg-[#D94E1B] text-white font-bold text-base shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] border-none"
                     >
-                        {isSignUp ? 'Fazer login' : 'Criar conta'}
-                    </button>
-                </p>
-                <p className="text-xs text-muted-foreground mt-4">
-                   Precisa de suporte? <a href="#" className="text-primary hover:underline">Fale com a HelpDigital</a>
-                </p>
-            </div>
+                        {loading ? (
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            {isSignUp ? 'Criando conta...' : 'Entrando...'}
+                        </div>
+                        ) : (
+                        <div className="flex items-center justify-center gap-2">
+                            {isSignUp ? 'Criar Conta' : 'Entrar no Sistema'} <ChevronRight className="h-5 w-5" />
+                        </div>
+                        )}
+                    </Button>
+                </form>
+
+                <div className="pt-6 text-center border-t border-border">
+                    <p className="text-sm text-muted-foreground">
+                        {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}{' '}
+                        <button 
+                            onClick={() => setIsSignUp(!isSignUp)} 
+                            className="text-primary hover:underline font-semibold"
+                        >
+                            {isSignUp ? 'Fazer login' : 'Criar conta'}
+                        </button>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-4">
+                       Precisa de suporte? <a href="#" className="text-primary hover:underline">Fale com a HelpDigital</a>
+                    </p>
+                </div>
+              </>
+            )}
         </div>
       </div>
     </div>
