@@ -147,8 +147,9 @@ Deno.serve(async (req) => {
             message_text: personalized,
             error: String(e?.message || e),
           });
+          const { data: latestF } = await admin.from('broadcasts').select('failed_count').eq('id', broadcastId).single();
           await admin.from('broadcasts').update({
-            failed_count: (bc.failed_count || 0) + 1,
+            failed_count: (latestF?.failed_count || 0) + 1,
             current_index: i + 1,
           }).eq('id', broadcastId);
         }
