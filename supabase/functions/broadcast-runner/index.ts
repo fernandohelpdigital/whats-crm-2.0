@@ -131,10 +131,9 @@ Deno.serve(async (req) => {
             sent_at: new Date().toISOString(),
           });
 
-          await admin.rpc('increment_broadcast_sent' as any, {}).catch(() => {});
-          // fallback manual increment
+          const { data: latest } = await admin.from('broadcasts').select('sent_count').eq('id', broadcastId).single();
           await admin.from('broadcasts').update({
-            sent_count: (bc.sent_count || 0) + (i - startIdx + 1),
+            sent_count: (latest?.sent_count || 0) + 1,
             current_index: i + 1,
           }).eq('id', broadcastId);
         } catch (e: any) {
