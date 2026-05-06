@@ -12,7 +12,8 @@ import AdminPage from './AdminPage';
 import ChatPage from './ChatPage';
 import ContactsPage from './ContactsPage';
 import GroupExtractorPage from './GroupExtractorPage';
-import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn, Users, Download } from 'lucide-react';
+import BroadcastPage from './BroadcastPage';
+import { Loader2, LayoutDashboard, Kanban, Settings, LogOut, Moon, Sun, X, Zap, Menu, CalendarClock, Shield, MessageSquare, ChevronRight, ChevronLeft, LogIn, Users, Download, Send } from 'lucide-react';
 import { Button, Avatar } from './ui/Shared';
 import { useTheme, useBranding } from '../index';
 import { useAuth } from '../src/hooks/useAuth';
@@ -32,6 +33,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
     chat: true,
     contacts: true,
     extractor: false,
+    broadcast: true,
 };
 
 const ADMIN_FLAGS: FeatureFlags = {
@@ -42,6 +44,7 @@ const ADMIN_FLAGS: FeatureFlags = {
     chat: true,
     contacts: true,
     extractor: true,
+    broadcast: true,
 };
 
 const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
@@ -56,7 +59,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts' | 'extractor'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts' | 'extractor' | 'broadcast'>('dashboard');
   
   // Feature Flags State
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FLAGS);
@@ -187,6 +190,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
               chat: data.chat ?? true,
               contacts: data.contacts ?? true,
               extractor: data.extractor ?? false,
+              broadcast: data.broadcast ?? true,
             };
             setFeatures(userFlags);
           }
@@ -489,6 +493,16 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                    expanded={isExpanded}
                    onClick={() => { setCurrentView('extractor'); closeMobileMenu(); }}
                   />
+                )}
+
+               {features.broadcast && (
+                 <SidebarButton 
+                   active={currentView === 'broadcast'}
+                   icon={<Send className="h-5 w-5" />}
+                   label="Transmissão"
+                   expanded={isExpanded}
+                   onClick={() => { setCurrentView('broadcast'); closeMobileMenu(); }}
+                  />
                )}
               
               {features.chat && (
@@ -605,6 +619,8 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                      <ContactsPage onOpenMenu={() => setIsMobileMenuOpen(true)} />
                  ) : currentView === 'extractor' && config ? (
                      <GroupExtractorPage config={config} onOpenMenu={() => setIsMobileMenuOpen(true)} />
+                 ) : currentView === 'broadcast' && features.broadcast ? (
+                     <BroadcastPage onOpenMenu={() => setIsMobileMenuOpen(true)} />
                  ) : currentView === 'chat' && features.chat && config ? (
                     <ChatPage 
                         contacts={contacts} 

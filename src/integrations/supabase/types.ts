@@ -14,6 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
+      broadcast_logs: {
+        Row: {
+          broadcast_id: string
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          error: string | null
+          id: string
+          message_id: string | null
+          message_text: string | null
+          phone: string
+          read_at: string | null
+          replied_at: string | null
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          broadcast_id: string
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          message_text?: string | null
+          phone: string
+          read_at?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          message_text?: string | null
+          phone?: string
+          read_at?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_logs_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcasts: {
+        Row: {
+          contact_ids: Json
+          created_at: string
+          current_index: number
+          delay_max_seconds: number
+          delay_min_seconds: number
+          delay_preset: string
+          failed_count: number
+          id: string
+          messages: Json
+          name: string
+          read_count: number
+          replied_count: number
+          sent_count: number
+          status: Database["public"]["Enums"]["broadcast_status"]
+          total_targets: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_ids?: Json
+          created_at?: string
+          current_index?: number
+          delay_max_seconds?: number
+          delay_min_seconds?: number
+          delay_preset?: string
+          failed_count?: number
+          id?: string
+          messages?: Json
+          name: string
+          read_count?: number
+          replied_count?: number
+          sent_count?: number
+          status?: Database["public"]["Enums"]["broadcast_status"]
+          total_targets?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_ids?: Json
+          created_at?: string
+          current_index?: number
+          delay_max_seconds?: number
+          delay_min_seconds?: number
+          delay_preset?: string
+          failed_count?: number
+          id?: string
+          messages?: Json
+          name?: string
+          read_count?: number
+          replied_count?: number
+          sent_count?: number
+          status?: Database["public"]["Enums"]["broadcast_status"]
+          total_targets?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           avatar_url: string | null
@@ -205,6 +324,7 @@ export type Database = {
       }
       instance_feature_flags: {
         Row: {
+          broadcast: boolean | null
           chat: boolean | null
           dashboard: boolean | null
           followup: boolean | null
@@ -214,6 +334,7 @@ export type Database = {
           proposals: boolean | null
         }
         Insert: {
+          broadcast?: boolean | null
           chat?: boolean | null
           dashboard?: boolean | null
           followup?: boolean | null
@@ -223,6 +344,7 @@ export type Database = {
           proposals?: boolean | null
         }
         Update: {
+          broadcast?: boolean | null
           chat?: boolean | null
           dashboard?: boolean | null
           followup?: boolean | null
@@ -367,6 +489,7 @@ export type Database = {
       }
       user_feature_flags: {
         Row: {
+          broadcast: boolean
           chat: boolean
           contacts: boolean
           created_at: string
@@ -380,6 +503,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          broadcast?: boolean
           chat?: boolean
           contacts?: boolean
           created_at?: string
@@ -393,6 +517,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          broadcast?: boolean
           chat?: boolean
           contacts?: boolean
           created_at?: string
@@ -440,6 +565,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      broadcast_status: "draft" | "running" | "paused" | "completed" | "failed"
       deal_status:
         | "lead_capturado"
         | "contato_inicial"
@@ -583,6 +709,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      broadcast_status: ["draft", "running", "paused", "completed", "failed"],
       deal_status: [
         "lead_capturado",
         "contato_inicial",

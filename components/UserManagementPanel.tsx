@@ -29,6 +29,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   chat: true,
   contacts: true,
   extractor: false,
+    broadcast: true,
 };
 
 const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, adminBaseUrl }) => {
@@ -68,6 +69,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
             chat: f.chat ?? true,
             contacts: f.contacts ?? true,
             extractor: f.extractor ?? false,
+            broadcast: f.broadcast ?? true,
           };
         });
       }

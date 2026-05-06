@@ -120,6 +120,7 @@ export interface FeatureFlags {
   chat: boolean;
   contacts: boolean;
   extractor: boolean;
+  broadcast: boolean;
 }
 
 export interface SystemConfig {
