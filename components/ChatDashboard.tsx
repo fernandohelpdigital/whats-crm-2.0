@@ -59,7 +59,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts' | 'extractor'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'kanban' | 'proposals' | 'followup' | 'settings' | 'admin' | 'chat' | 'contacts' | 'extractor' | 'broadcast'>('dashboard');
   
   // Feature Flags State
   const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FLAGS);
