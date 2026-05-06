@@ -32,6 +32,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
     chat: true,
     contacts: true,
     extractor: false,
+    broadcast: true,
 };
 
 const ADMIN_FLAGS: FeatureFlags = {
@@ -42,6 +43,7 @@ const ADMIN_FLAGS: FeatureFlags = {
     chat: true,
     contacts: true,
     extractor: true,
+    broadcast: true,
 };
 
 const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
@@ -187,6 +189,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
               chat: data.chat ?? true,
               contacts: data.contacts ?? true,
               extractor: data.extractor ?? false,
+              broadcast: data.broadcast ?? true,
             };
             setFeatures(userFlags);
           }

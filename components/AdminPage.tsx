@@ -21,6 +21,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
     chat: true,
     contacts: true,
     extractor: false,
+    broadcast: true,
 };
 
 const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
@@ -76,6 +77,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                 chat: f.chat ?? true,
                 contacts: true,
                 extractor: false,
+    broadcast: true,
               };
             });
             
