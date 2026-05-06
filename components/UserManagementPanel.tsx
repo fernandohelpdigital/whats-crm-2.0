@@ -325,6 +325,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                           <ModuleToggle active={flags.proposals} icon={<Zap className="w-3.5 h-3.5" />} label="Vendas" onClick={() => toggleUserFeature(u.id, 'proposals')} />
                           <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-3.5 h-3.5" />} label="Follow" onClick={() => toggleUserFeature(u.id, 'followup')} />
                           <ModuleToggle active={flags.extractor} icon={<DownloadIcon className="w-3.5 h-3.5" />} label="Extrator" onClick={() => toggleUserFeature(u.id, 'extractor')} />
+                          <ModuleToggle active={flags.broadcast} icon={<Send className="w-3.5 h-3.5" />} label="Transm." onClick={() => toggleUserFeature(u.id, 'broadcast')} />
                           <button
                             onClick={() => handleSaveUserFlags(u.id)}
                             disabled={actionLoading === u.id}
