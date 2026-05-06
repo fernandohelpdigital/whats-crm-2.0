@@ -378,6 +378,96 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
       };
       socket.on("MESSAGES_UPSERT", handleMessageEvent);
       socket.on("messages.upsert", handleMessageEvent);
+
+      // ===== Broadcast metrics correlation =====
+      // 1) messages.update => marca como lido quando status READ (4) / PLAYED (5)
+      const handleMessagesUpdate = async (payload: any) => {
+        try {
+          const evt = Array.isArray(payload) ? payload[0] : payload;
+          const data = evt?.data || evt;
+          const arr = Array.isArray(data) ? data : [data];
+          for (const item of arr) {
+            const messageId = item?.key?.id || item?.keyId || item?.messageId;
+            const rawStatus = item?.status ?? item?.update?.status;
+            if (!messageId || rawStatus == null) continue;
+            const statusStr = String(rawStatus).toUpperCase();
+            const isRead = statusStr === 'READ' || statusStr === 'PLAYED' || rawStatus === 4 || rawStatus === 5;
+            if (!isRead) continue;
+
+            const { data: log } = await supabase
+              .from('broadcast_logs')
+              .select('id, broadcast_id, read_at')
+              .eq('message_id', messageId)
+              .maybeSingle();
+            if (!log || log.read_at) continue;
+
+            await supabase
+              .from('broadcast_logs')
+              .update({ read_at: new Date().toISOString(), status: 'read' })
+              .eq('id', log.id);
+
+            const { data: bc } = await supabase
+              .from('broadcasts')
+              .select('read_count')
+              .eq('id', log.broadcast_id)
+              .maybeSingle();
+            await supabase
+              .from('broadcasts')
+              .update({ read_count: (bc?.read_count || 0) + 1 })
+              .eq('id', log.broadcast_id);
+          }
+        } catch (e) {
+          console.error('[Broadcast] update handler error', e);
+        }
+      };
+      socket.on('MESSAGES_UPDATE', handleMessagesUpdate);
+      socket.on('messages.update', handleMessagesUpdate);
+
+      // 2) Resposta entrante => correlaciona pelo telefone do remetente
+      const handleIncomingReply = async (payload: any) => {
+        try {
+          const evt = Array.isArray(payload) ? payload[0] : payload;
+          const msg = evt?.data || evt;
+          const key = msg?.key;
+          if (!key || key.fromMe) return;
+          const remoteJid: string = key.remoteJid || '';
+          if (!remoteJid || remoteJid.includes('@g.us') || remoteJid === 'status@broadcast') return;
+          const phoneDigits = remoteJid.split('@')[0].replace(/\D/g, '');
+          if (!phoneDigits) return;
+
+          // pega último log enviado para esse telefone, sem resposta ainda, últimas 72h
+          const since = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+          const { data: logs } = await supabase
+            .from('broadcast_logs')
+            .select('id, broadcast_id, replied_at, phone')
+            .is('replied_at', null)
+            .eq('status', 'sent')
+            .gte('sent_at', since)
+            .order('sent_at', { ascending: false })
+            .limit(50);
+          const match = (logs || []).find(l => (l.phone || '').replace(/\D/g, '').endsWith(phoneDigits) || phoneDigits.endsWith((l.phone || '').replace(/\D/g, '')));
+          if (!match) return;
+
+          await supabase
+            .from('broadcast_logs')
+            .update({ replied_at: new Date().toISOString(), status: 'replied' })
+            .eq('id', match.id);
+
+          const { data: bc } = await supabase
+            .from('broadcasts')
+            .select('replied_count')
+            .eq('id', match.broadcast_id)
+            .maybeSingle();
+          await supabase
+            .from('broadcasts')
+            .update({ replied_count: (bc?.replied_count || 0) + 1 })
+            .eq('id', match.broadcast_id);
+        } catch (e) {
+          console.error('[Broadcast] reply handler error', e);
+        }
+      };
+      socket.on('MESSAGES_UPSERT', handleIncomingReply);
+      socket.on('messages.upsert', handleIncomingReply);
     }, 100);
 
     return () => {
