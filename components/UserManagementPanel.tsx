@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle, Send } from 'lucide-react';
 import { Instance, FeatureFlags } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -325,6 +325,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                           <ModuleToggle active={flags.proposals} icon={<Zap className="w-3.5 h-3.5" />} label="Vendas" onClick={() => toggleUserFeature(u.id, 'proposals')} />
                           <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-3.5 h-3.5" />} label="Follow" onClick={() => toggleUserFeature(u.id, 'followup')} />
                           <ModuleToggle active={flags.extractor} icon={<DownloadIcon className="w-3.5 h-3.5" />} label="Extrator" onClick={() => toggleUserFeature(u.id, 'extractor')} />
+                          <ModuleToggle active={flags.broadcast} icon={<Send className="w-3.5 h-3.5" />} label="Transm." onClick={() => toggleUserFeature(u.id, 'broadcast')} />
                           <button
                             onClick={() => handleSaveUserFlags(u.id)}
                             disabled={actionLoading === u.id}
