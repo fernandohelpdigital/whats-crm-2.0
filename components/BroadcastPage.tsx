@@ -164,7 +164,7 @@ const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
                       </Button>
                     )}
                     {b.status === 'running' && (
-                      <Button size="sm" variant="secondary" className="flex-1" onClick={() => pauseBroadcast(b)}>
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => pauseBroadcast(b)}>
                         <Pause className="h-3 w-3 mr-1" /> Pausar
                       </Button>
                     )}
@@ -340,7 +340,7 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
               ))}
               {messages.length < 30 && (
-                <Button variant="secondary" onClick={addMessage}><Plus className="h-4 w-4 mr-1" /> Adicionar modelo</Button>
+                <Button variant="outline" onClick={addMessage}><Plus className="h-4 w-4 mr-1" /> Adicionar modelo</Button>
               )}
             </div>
           )}
@@ -417,7 +417,7 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Button onClick={() => setStep(step + 1)}>Próximo</Button>
             ) : (
               <>
-                <Button variant="secondary" disabled={saving} onClick={() => save(false)}>Salvar rascunho</Button>
+                <Button variant="outline" disabled={saving} onClick={() => save(false)}>Salvar rascunho</Button>
                 <Button disabled={saving} onClick={() => save(true)}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-1" /> Salvar e iniciar</>}
                 </Button>
