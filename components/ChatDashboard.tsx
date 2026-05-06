@@ -493,6 +493,16 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                    expanded={isExpanded}
                    onClick={() => { setCurrentView('extractor'); closeMobileMenu(); }}
                   />
+                )}
+
+               {features.broadcast && (
+                 <SidebarButton 
+                   active={currentView === 'broadcast'}
+                   icon={<Send className="h-5 w-5" />}
+                   label="Transmissão"
+                   expanded={isExpanded}
+                   onClick={() => { setCurrentView('broadcast'); closeMobileMenu(); }}
+                  />
                )}
               
               {features.chat && (
