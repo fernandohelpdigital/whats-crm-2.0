@@ -380,10 +380,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <ModuleToggle active={flags.dashboard} icon={<LayoutDashboard className="w-4 h-4" />} label="Dash" onClick={() => toggleFeature(name, 'dashboard')} />
+                                                    <ModuleToggle active={flags.contacts} icon={<UserCircle className="w-4 h-4" />} label="Contatos" onClick={() => toggleFeature(name, 'contacts')} />
                                                     <ModuleToggle active={flags.chat} icon={<MessageSquare className="w-4 h-4" />} label="Chat" onClick={() => toggleFeature(name, 'chat')} />
                                                     <ModuleToggle active={flags.kanban} icon={<Kanban className="w-4 h-4" />} label="Kanban" onClick={() => toggleFeature(name, 'kanban')} />
                                                     <ModuleToggle active={flags.proposals} icon={<Zap className="w-4 h-4" />} label="Vendas" onClick={() => toggleFeature(name, 'proposals')} />
                                                     <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-4 h-4" />} label="Follow" onClick={() => toggleFeature(name, 'followup')} />
+                                                    <ModuleToggle active={flags.extractor} icon={<DownloadIcon className="w-4 h-4" />} label="Extrator" onClick={() => toggleFeature(name, 'extractor')} />
+                                                    <ModuleToggle active={flags.broadcast} icon={<Send className="w-4 h-4" />} label="Transm." onClick={() => toggleFeature(name, 'broadcast')} />
                                                 </div>
                                             </td>
                                         </tr>
