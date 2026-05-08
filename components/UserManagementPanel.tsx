@@ -408,6 +408,15 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                               <Button
                                 size="sm"
                                 variant="outline"
+                                onClick={() => openEditUser(u)}
+                                className="text-xs gap-1 border-border"
+                                title="Editar usuário / alterar senha"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleDeleteUser(u.id, u.email)}
                                 className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
                                 title="Excluir usuário"
