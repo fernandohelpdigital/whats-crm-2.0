@@ -452,6 +452,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             return p.endsWith(tail) || phoneDigits.endsWith(p.slice(-8));
           });
           const fromBroadcastReply = !!match;
+          let broadcastFlowId: string | null = null;
           if (match) {
             console.log('[Broadcast] reply matched', { broadcast_id: match.broadcast_id, phone: match.phone });
 
@@ -462,9 +463,10 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
 
             const { data: bc } = await supabase
               .from('broadcasts')
-              .select('replied_count')
+              .select('replied_count, flow_id')
               .eq('id', match.broadcast_id)
               .maybeSingle();
+            broadcastFlowId = (bc as any)?.flow_id || null;
             await supabase
               .from('broadcasts')
               .update({ replied_count: (bc?.replied_count || 0) + 1 })
@@ -497,6 +499,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                   message: messageText,
                   contact_name: contactName,
                   from_broadcast_reply: fromBroadcastReply,
+                  broadcast_flow_id: broadcastFlowId,
                 }),
               }).catch((e) => console.error('[Flow] trigger error', e));
             }

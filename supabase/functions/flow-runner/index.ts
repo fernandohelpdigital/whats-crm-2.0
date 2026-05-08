@@ -203,6 +203,7 @@ Deno.serve(async (req) => {
       const phone = normalizePhone(body.phone || '');
       const messageText = String(body.message || '');
       const fromBroadcastReply = !!body.from_broadcast_reply;
+      const broadcastFlowId: string | null = body.broadcast_flow_id || null;
       const contactName = body.contact_name || phone;
       if (!phone) return new Response(JSON.stringify({ error: 'phone required' }), { status: 400, headers: corsHeaders });
 
@@ -225,17 +226,25 @@ Deno.serve(async (req) => {
         }
       }
 
-      // 2) Match enabled flows by trigger
-      const { data: flows } = await admin.from('flows').select('*').eq('user_id', userId).eq('enabled', true);
-      const newRunIds: string[] = [];
-      for (const f of flows || []) {
-        const triggers = (f.triggers as any[]) || [];
-        let triggered = false;
-        for (const t of triggers) {
-          if (t.type === 'broadcast_reply' && fromBroadcastReply) { triggered = true; break; }
-          if (t.type === 'keyword' && matchKeywords(messageText, t.match_type || 'contains', t.keywords || [])) { triggered = true; break; }
+      // 2) Match flows: if broadcast has an attributed flow, use it directly; otherwise match enabled flows by trigger
+      let flowsToStart: any[] = [];
+      if (broadcastFlowId) {
+        const { data: f } = await admin.from('flows').select('*').eq('id', broadcastFlowId).eq('user_id', userId).maybeSingle();
+        if (f) flowsToStart = [f];
+      } else {
+        const { data: flows } = await admin.from('flows').select('*').eq('user_id', userId).eq('enabled', true);
+        for (const f of flows || []) {
+          const triggers = (f.triggers as any[]) || [];
+          let triggered = false;
+          for (const t of triggers) {
+            if (t.type === 'broadcast_reply' && fromBroadcastReply) { triggered = true; break; }
+            if (t.type === 'keyword' && matchKeywords(messageText, t.match_type || 'contains', t.keywords || [])) { triggered = true; break; }
+          }
+          if (triggered) flowsToStart.push(f);
         }
-        if (!triggered) continue;
+      }
+      const newRunIds: string[] = [];
+      for (const f of flowsToStart) {
         // Avoid duplicate active run for same flow+contact
         const { data: existing } = await admin
           .from('flow_runs')

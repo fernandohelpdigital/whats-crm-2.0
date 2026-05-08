@@ -1,0 +1,1 @@
+ALTER TABLE public.broadcasts ADD COLUMN IF NOT EXISTS flow_id uuid;

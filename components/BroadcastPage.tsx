@@ -21,7 +21,10 @@ interface Broadcast {
   replied_count: number;
   current_index: number;
   created_at: string;
+  flow_id?: string | null;
 }
+
+interface FlowOption { id: string; name: string; enabled: boolean }
 
 interface Contact {
   id: string;
@@ -222,10 +225,15 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [flows, setFlows] = useState<FlowOption[]>([]);
+  const [flowId, setFlowId] = useState<string>('');
 
   useEffect(() => {
     supabase.from('contacts').select('id, name, phone, tags').order('name').then(({ data }) => {
       setContacts((data as any) || []);
+    });
+    supabase.from('flows').select('id, name, enabled').order('updated_at', { ascending: false }).then(({ data }) => {
+      setFlows((data as any) || []);
     });
   }, []);
 
@@ -281,6 +289,7 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           messages: validMessages,
           contact_ids: ids,
           total_targets: ids.length,
+          flow_id: flowId || null,
         })
         .select()
         .single();
@@ -339,6 +348,27 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-bold mb-2 block">Fluxo automático (opcional)</label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Vincule um fluxo a este disparo. Ele será acionado automaticamente quando um lead responder a mensagem desta transmissão.
+                </p>
+                <select
+                  className="w-full p-3 rounded-lg bg-muted border border-border"
+                  value={flowId}
+                  onChange={(e) => setFlowId(e.target.value)}
+                >
+                  <option value="">Sem fluxo</option>
+                  {flows.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}{f.enabled ? '' : ' (inativo)'}
+                    </option>
+                  ))}
+                </select>
+                {flows.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">Nenhum fluxo criado. Crie em Transmissão → Fluxos.</p>
+                )}
               </div>
             </div>
           )}
@@ -426,6 +456,7 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <div className="p-3 rounded-lg bg-muted"><div className="text-xs text-muted-foreground">Atraso</div><div className="font-bold">{DELAY_PRESETS.find((p) => p.id === preset)?.label}</div></div>
                 <div className="p-3 rounded-lg bg-muted"><div className="text-xs text-muted-foreground">Modelos</div><div className="font-bold">{messages.filter((m) => m.trim()).length}</div></div>
                 <div className="p-3 rounded-lg bg-muted"><div className="text-xs text-muted-foreground">Destinatários</div><div className="font-bold">{selected.size}</div></div>
+                <div className="p-3 rounded-lg bg-muted col-span-2"><div className="text-xs text-muted-foreground">Fluxo</div><div className="font-bold">{flowId ? (flows.find(f => f.id === flowId)?.name || '—') : 'Sem fluxo'}</div></div>
               </div>
             </div>
           )}
