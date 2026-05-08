@@ -115,14 +115,34 @@ const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
           </button>
           <div>
             <h1 className="text-xl font-bold">Transmissão</h1>
-            <p className="text-xs text-muted-foreground">Disparos em massa via WhatsApp</p>
+            <p className="text-xs text-muted-foreground">Disparos em massa e fluxos automáticos via WhatsApp</p>
           </div>
         </div>
-        <Button onClick={() => setShowWizard(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Transmissão
-        </Button>
+        {tab === 'broadcasts' && (
+          <Button onClick={() => setShowWizard(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Nova Transmissão
+          </Button>
+        )}
       </header>
 
+      <div className="flex gap-1 px-4 pt-3 border-b border-border bg-card">
+        <button
+          onClick={() => setTab('broadcasts')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-bold border-b-2 -mb-px ${tab === 'broadcasts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+        >
+          <Send className="h-4 w-4" /> Transmissões
+        </button>
+        <button
+          onClick={() => setTab('flows')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-bold border-b-2 -mb-px ${tab === 'flows' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+        >
+          <Workflow className="h-4 w-4" /> Fluxos
+        </button>
+      </div>
+
+      {tab === 'flows' ? (
+        <div className="flex-1 overflow-auto"><FlowsPage /></div>
+      ) : (
       <div className="flex-1 overflow-auto p-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
