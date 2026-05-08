@@ -451,26 +451,58 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             if (!p) return false;
             return p.endsWith(tail) || phoneDigits.endsWith(p.slice(-8));
           });
-          if (!match) {
+          const fromBroadcastReply = !!match;
+          if (match) {
+            console.log('[Broadcast] reply matched', { broadcast_id: match.broadcast_id, phone: match.phone });
+
+            await supabase
+              .from('broadcast_logs')
+              .update({ replied_at: new Date().toISOString(), status: 'replied' })
+              .eq('id', match.id);
+
+            const { data: bc } = await supabase
+              .from('broadcasts')
+              .select('replied_count')
+              .eq('id', match.broadcast_id)
+              .maybeSingle();
+            await supabase
+              .from('broadcasts')
+              .update({ replied_count: (bc?.replied_count || 0) + 1 })
+              .eq('id', match.broadcast_id);
+          } else {
             console.log('[Broadcast] reply received but no matching log', { phoneDigits });
-            return;
           }
-          console.log('[Broadcast] reply matched', { broadcast_id: match.broadcast_id, phone: match.phone });
 
-          await supabase
-            .from('broadcast_logs')
-            .update({ replied_at: new Date().toISOString(), status: 'replied' })
-            .eq('id', match.id);
-
-          const { data: bc } = await supabase
-            .from('broadcasts')
-            .select('replied_count')
-            .eq('id', match.broadcast_id)
-            .maybeSingle();
-          await supabase
-            .from('broadcasts')
-            .update({ replied_count: (bc?.replied_count || 0) + 1 })
-            .eq('id', match.broadcast_id);
+          // ===== Trigger flows (workflows) =====
+          try {
+            const messageText: string =
+              msg?.message?.conversation ||
+              msg?.message?.extendedTextMessage?.text ||
+              msg?.message?.imageMessage?.caption ||
+              msg?.message?.videoMessage?.caption ||
+              '';
+            const contactName: string = msg?.pushName || phoneDigits;
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+              fetch(`https://${projectId}.supabase.co/functions/v1/flow-runner`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                  action: 'trigger',
+                  phone: phoneDigits,
+                  message: messageText,
+                  contact_name: contactName,
+                  from_broadcast_reply: fromBroadcastReply,
+                }),
+              }).catch((e) => console.error('[Flow] trigger error', e));
+            }
+          } catch (e) {
+            console.error('[Flow] trigger handler error', e);
+          }
         } catch (e) {
           console.error('[Broadcast] reply handler error', e);
         }
