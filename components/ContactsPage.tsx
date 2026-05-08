@@ -22,9 +22,10 @@ interface DBContact {
 
 interface ContactsPageProps {
   onOpenMenu: () => void;
+  config?: { instanceName: string; apiKey: string; baseUrl: string } | null;
 }
 
-const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
+const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu, config }) => {
   const { profile } = useAuth();
   const [contacts, setContacts] = useState<DBContact[]>([]);
   const [loading, setLoading] = useState(true);
