@@ -466,6 +466,43 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
           </table>
         </div>
       )}
+
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEditingUser(null)}>
+          <div className="bg-white dark:bg-[#202c33] rounded-2xl shadow-xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                <Pencil className="w-4 h-4" /> Editar Usuário
+              </h3>
+              <button onClick={() => setEditingUser(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome</label>
+                <Input value={editForm.display_name} onChange={e => setEditForm(f => ({ ...f, display_name: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mail</label>
+                <Input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nova senha (opcional)</label>
+                <Input type="password" placeholder="Deixe em branco para não alterar" value={editForm.password} onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} className="mt-1" />
+                <p className="text-[10px] text-muted-foreground mt-1">Mínimo 6 caracteres.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" size="sm" onClick={() => setEditingUser(null)}>Cancelar</Button>
+              <Button size="sm" onClick={handleSaveEditUser} disabled={actionLoading === editingUser.id} className="bg-primary text-white gap-1">
+                {actionLoading === editingUser.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
