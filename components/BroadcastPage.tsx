@@ -225,10 +225,15 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [flows, setFlows] = useState<FlowOption[]>([]);
+  const [flowId, setFlowId] = useState<string>('');
 
   useEffect(() => {
     supabase.from('contacts').select('id, name, phone, tags').order('name').then(({ data }) => {
       setContacts((data as any) || []);
+    });
+    supabase.from('flows').select('id, name, enabled').order('updated_at', { ascending: false }).then(({ data }) => {
+      setFlows((data as any) || []);
     });
   }, []);
 
