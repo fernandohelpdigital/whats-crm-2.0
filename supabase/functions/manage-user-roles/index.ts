@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { action, user_id, instance_name, api_key, base_url, flags } = await req.json();
+    const { action, user_id, instance_name, api_key, base_url, flags, email, password, display_name } = await req.json();
 
     if (action === "list") {
       const { data: users, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
