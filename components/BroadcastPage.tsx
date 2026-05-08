@@ -289,6 +289,7 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           messages: validMessages,
           contact_ids: ids,
           total_targets: ids.length,
+          flow_id: flowId || null,
         })
         .select()
         .single();
