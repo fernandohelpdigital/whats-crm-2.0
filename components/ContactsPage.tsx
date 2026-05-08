@@ -245,8 +245,12 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu, config }) => {
     if (selectedIds.size === 0) return;
     if (!confirm(`Excluir ${selectedIds.size} contato(s)?`)) return;
     try {
-      const { error } = await supabase.from('contacts').delete().in('id', Array.from(selectedIds));
-      if (error) throw error;
+      const ids = Array.from(selectedIds);
+      for (let i = 0; i < ids.length; i += 100) {
+        const batch = ids.slice(i, i + 100);
+        const { error } = await supabase.from('contacts').delete().in('id', batch);
+        if (error) throw error;
+      }
       toast.success(`${selectedIds.size} contato(s) excluído(s)`);
       setSelectedIds(new Set());
       loadContacts();
