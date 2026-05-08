@@ -273,6 +273,10 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
         <h1 className="text-lg font-bold text-foreground">Contatos</h1>
         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{contacts.length}</span>
         <div className="flex-1" />
+        <Button variant="outline" size="sm" onClick={syncFromWhatsApp} disabled={syncing} className="gap-1.5">
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+          Sincronizar WhatsApp
+        </Button>
         <Button variant="default" size="sm" onClick={() => { resetForm(); setShowForm(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Novo
         </Button>
