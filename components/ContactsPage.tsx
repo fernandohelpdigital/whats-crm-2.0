@@ -25,8 +25,10 @@ interface ContactsPageProps {
 }
 
 const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
+  const { profile } = useAuth();
   const [contacts, setContacts] = useState<DBContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<DBContact | null>(null);
