@@ -82,6 +82,7 @@ export type Database = {
           delay_min_seconds: number
           delay_preset: string
           failed_count: number
+          flow_id: string | null
           id: string
           messages: Json
           name: string
@@ -101,6 +102,7 @@ export type Database = {
           delay_min_seconds?: number
           delay_preset?: string
           failed_count?: number
+          flow_id?: string | null
           id?: string
           messages?: Json
           name: string
@@ -120,6 +122,7 @@ export type Database = {
           delay_min_seconds?: number
           delay_preset?: string
           failed_count?: number
+          flow_id?: string | null
           id?: string
           messages?: Json
           name?: string
