@@ -608,10 +608,12 @@ const LiveRunsPanel: React.FC<{
   );
 };
 
-
+const FlowEditor: React.FC<Props> = (props) => (
   <ReactFlowProvider>
     <FlowEditorInner {...props} />
   </ReactFlowProvider>
 );
+
+export default FlowEditor;
 
 export default FlowEditor;
