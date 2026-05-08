@@ -499,6 +499,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                   message: messageText,
                   contact_name: contactName,
                   from_broadcast_reply: fromBroadcastReply,
+                  broadcast_flow_id: broadcastFlowId,
                 }),
               }).catch((e) => console.error('[Flow] trigger error', e));
             }
