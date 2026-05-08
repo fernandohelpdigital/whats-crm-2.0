@@ -41,6 +41,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [apiKeyInputs, setApiKeyInputs] = useState<Record<string, string>>({});
   const [userFlagsMap, setUserFlagsMap] = useState<Record<string, FeatureFlags & { id?: string }>>({});
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [editForm, setEditForm] = useState({ display_name: '', email: '', password: '' });
 
   const fetchUsers = async () => {
     setLoading(true);
