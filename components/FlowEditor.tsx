@@ -50,7 +50,7 @@ const FlowNode: React.FC<NodeProps> = ({ data, selected, type }) => {
   const isTrigger = type === 'trigger';
   const isCondition = type === 'condition';
   return (
-    <div className={`rounded-xl shadow-md bg-card border-2 ${selected ? 'border-primary' : 'border-border'} min-w-[220px]`}>
+    <div className={`relative rounded-xl shadow-md bg-card border-2 ${selected ? 'border-primary' : 'border-border'} min-w-[220px]`}>
       {!isTrigger && <Handle type="target" position={Position.Top} className="!bg-primary" />}
       <div className={`flex items-center gap-2 px-3 py-2 ${meta.color} text-white rounded-t-[10px]`}>
         <Icon className="h-4 w-4" />
@@ -59,6 +59,12 @@ const FlowNode: React.FC<NodeProps> = ({ data, selected, type }) => {
       <div className="px-3 py-2 text-xs text-foreground">
         <FlowNodePreview type={type as NodeKind} data={data as any} />
       </div>
+      {(data as any)?._liveCount > 0 && (
+        <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 animate-pulse">
+          <Activity className="h-3 w-3" />
+          {(data as any)._liveCount}
+        </div>
+      )}
       {isCondition ? (
         <>
           <Handle id="match" type="source" position={Position.Bottom} style={{ left: '30%' }} className="!bg-emerald-500" />
