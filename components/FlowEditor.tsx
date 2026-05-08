@@ -196,14 +196,14 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
       if (!user) throw new Error('Não autenticado');
       const trigger = doc.nodes.find((n) => n.type === 'trigger');
       const triggers = (trigger?.data as any)?.triggers || [];
-      const payload = {
+      const payload: any = {
         user_id: user.id,
         name: doc.name,
         description: doc.description,
         enabled: doc.enabled,
         triggers,
-        nodes: doc.nodes,
-        edges: doc.edges,
+        nodes: doc.nodes as any,
+        edges: doc.edges as any,
         start_node_id: trigger?.id || null,
       };
       if (doc.id) {
