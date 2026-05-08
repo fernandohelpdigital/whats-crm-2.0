@@ -615,5 +615,3 @@ const FlowEditor: React.FC<Props> = (props) => (
 );
 
 export default FlowEditor;
-
-export default FlowEditor;
