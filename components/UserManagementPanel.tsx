@@ -176,6 +176,38 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
     }
   };
 
+  const openEditUser = (u: ManagedUser) => {
+    setEditingUser(u);
+    setEditForm({ display_name: u.display_name || '', email: u.email || '', password: '' });
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    setActionLoading(editingUser.id);
+    try {
+      const payload: any = { action: 'update_user', user_id: editingUser.id };
+      if (editForm.display_name && editForm.display_name !== editingUser.display_name) payload.display_name = editForm.display_name;
+      if (editForm.email && editForm.email !== editingUser.email) payload.email = editForm.email;
+      if (editForm.password && editForm.password.length >= 6) payload.password = editForm.password;
+      else if (editForm.password && editForm.password.length > 0) {
+        toast.error('A senha deve ter ao menos 6 caracteres');
+        setActionLoading(null);
+        return;
+      }
+      const res = await supabase.functions.invoke('manage-user-roles', { body: payload });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success('Usuário atualizado!');
+      setEditingUser(null);
+      await fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao atualizar usuário');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+
   const toggleUserFeature = (userId: string, feature: keyof FeatureFlags) => {
     setUserFlagsMap(prev => {
       const current = prev[userId] || { ...DEFAULT_FLAGS };
