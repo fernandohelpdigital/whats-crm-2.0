@@ -152,6 +152,7 @@ async function executeRun(admin: any, runId: string) {
             await admin.from('deals').update({ status: data.value }).eq('id', target.id);
           }
         } else if (data.action === 'create_followup' && data.value) {
+          const hours = Number(data.delay_hours) > 0 ? Number(data.delay_hours) : 24;
           await admin.from('follow_up_tasks').insert({
             user_id: run.user_id,
             contact_name: run.contact_name || run.contact_phone,
@@ -159,7 +160,7 @@ async function executeRun(admin: any, runId: string) {
             type: 'whatsapp',
             status: 'pending',
             message: interpolate(data.value, context),
-            scheduled_at: new Date(Date.now() + 24 * 3600_000).toISOString(),
+            scheduled_at: new Date(Date.now() + hours * 3600_000).toISOString(),
           });
         }
       } catch (e) {
