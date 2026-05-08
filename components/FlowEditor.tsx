@@ -356,6 +356,10 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
             </div>
           )}
         </aside>
+
+        {showLive && flowId && (
+          <LiveRunsPanel runs={runs} nodes={doc.nodes} onClose={() => setShowLive(false)} onFocusNode={(id) => setSelectedId(id)} />
+        )}
       </div>
     </div>
   );
