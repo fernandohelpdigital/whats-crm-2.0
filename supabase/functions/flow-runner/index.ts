@@ -203,6 +203,7 @@ Deno.serve(async (req) => {
       const phone = normalizePhone(body.phone || '');
       const messageText = String(body.message || '');
       const fromBroadcastReply = !!body.from_broadcast_reply;
+      const broadcastFlowId: string | null = body.broadcast_flow_id || null;
       const contactName = body.contact_name || phone;
       if (!phone) return new Response(JSON.stringify({ error: 'phone required' }), { status: 400, headers: corsHeaders });
 
