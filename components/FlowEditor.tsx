@@ -318,7 +318,7 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
         {/* Canvas */}
         <div className="flex-1 relative bg-muted/30">
           <ReactFlow
-            nodes={doc.nodes}
+            nodes={nodesWithCounts}
             edges={doc.edges}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
