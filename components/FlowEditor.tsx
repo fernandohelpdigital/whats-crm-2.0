@@ -127,6 +127,8 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [runs, setRuns] = useState<any[]>([]);
+  const [showLive, setShowLive] = useState(true);
 
   useEffect(() => {
     if (!flowId) return;
