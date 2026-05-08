@@ -66,20 +66,42 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu, config }) => {
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
   const syncFromWhatsApp = useCallback(async () => {
-    if (!profile?.instance_name || !profile?.api_key) {
-      toast.error('Instância do WhatsApp não configurada');
+    const instanceName = config?.instanceName || profile?.instance_name;
+    const apiKey = config?.apiKey || profile?.api_key;
+    const baseUrlRaw = config?.baseUrl || profile?.base_url || 'https://api.automacaohelp.com.br';
+
+    if (!instanceName || !apiKey) {
+      toast.error('Conecte uma instância em Configurações > Conexão');
       return;
     }
+
     setSyncing(true);
-    const toastId = toast.loading('Buscando contatos do WhatsApp...');
+    const toastId = toast.loading('Verificando conexão da instância...');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      const baseUrl = (profile.base_url || 'https://api.automacaohelp.com.br').replace(/\/$/, '');
-      const url = `${baseUrl}/chat/findContacts/${profile.instance_name}`;
+      const baseUrl = baseUrlRaw.replace(/\/$/, '');
+
+      // Verificar estado da conexão antes de buscar
+      try {
+        const stateRes = await axios.get(`${baseUrl}/instance/connectionState/${instanceName}`, {
+          headers: { apikey: apiKey },
+        });
+        const state = stateRes.data?.instance?.state || stateRes.data?.state;
+        if (state && state !== 'open') {
+          toast.error('Instância não está conectada. Conecte em Configurações > Conexão.', { id: toastId });
+          return;
+        }
+      } catch {
+        toast.error('Não foi possível verificar a conexão da instância', { id: toastId });
+        return;
+      }
+
+      toast.loading('Buscando contatos do WhatsApp...', { id: toastId });
+      const url = `${baseUrl}/chat/findContacts/${instanceName}`;
       const res = await axios.post(url, { where: {} }, {
-        headers: { apikey: profile.api_key, 'Content-Type': 'application/json' },
+        headers: { apikey: apiKey, 'Content-Type': 'application/json' },
       });
       const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
 
@@ -100,7 +122,6 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu, config }) => {
         })
         .filter(Boolean) as Array<{ user_id: string; phone: string; name: string; avatar_url: string | null }>;
 
-      // Dedup por phone
       const map = new Map<string, typeof valid[0]>();
       valid.forEach((c) => { if (!map.has(c.phone)) map.set(c.phone, c); });
       const list = Array.from(map.values());
@@ -127,7 +148,7 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu, config }) => {
     } finally {
       setSyncing(false);
     }
-  }, [profile, loadContacts]);
+  }, [config, profile, loadContacts]);
 
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.phone.trim()) {
