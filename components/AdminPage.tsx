@@ -330,7 +330,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                                     <th className="px-8 py-6 tracking-widest">Identificação</th>
                                     <th className="px-6 py-6 tracking-widest text-center">Volume</th>
                                     <th className="px-6 py-6 tracking-widest text-center">Status</th>
-                                    <th className="px-8 py-6 tracking-widest text-center">Permissões</th>
+                                    
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/40">
