@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Button } from './ui/Shared';
-import { Loader2, Plus, Play, Pause, Trash2, BarChart3, Menu, X, Check } from 'lucide-react';
+import { Loader2, Plus, Play, Pause, Trash2, BarChart3, Menu, X, Check, Send, Workflow } from 'lucide-react';
 import toast from 'react-hot-toast';
+import FlowsPage from './FlowsPage';
 
 interface Broadcast {
   id: string;
