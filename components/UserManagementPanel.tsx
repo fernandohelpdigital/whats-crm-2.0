@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle, Send } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle, Send, Pencil, X } from 'lucide-react';
 import { Instance, FeatureFlags } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
@@ -41,6 +41,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [apiKeyInputs, setApiKeyInputs] = useState<Record<string, string>>({});
   const [userFlagsMap, setUserFlagsMap] = useState<Record<string, FeatureFlags & { id?: string }>>({});
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [editForm, setEditForm] = useState({ display_name: '', email: '', password: '' });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -173,6 +175,38 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
       setActionLoading(null);
     }
   };
+
+  const openEditUser = (u: ManagedUser) => {
+    setEditingUser(u);
+    setEditForm({ display_name: u.display_name || '', email: u.email || '', password: '' });
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    setActionLoading(editingUser.id);
+    try {
+      const payload: any = { action: 'update_user', user_id: editingUser.id };
+      if (editForm.display_name && editForm.display_name !== editingUser.display_name) payload.display_name = editForm.display_name;
+      if (editForm.email && editForm.email !== editingUser.email) payload.email = editForm.email;
+      if (editForm.password && editForm.password.length >= 6) payload.password = editForm.password;
+      else if (editForm.password && editForm.password.length > 0) {
+        toast.error('A senha deve ter ao menos 6 caracteres');
+        setActionLoading(null);
+        return;
+      }
+      const res = await supabase.functions.invoke('manage-user-roles', { body: payload });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success('Usuário atualizado!');
+      setEditingUser(null);
+      await fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao atualizar usuário');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
 
   const toggleUserFeature = (userId: string, feature: keyof FeatureFlags) => {
     setUserFlagsMap(prev => {
@@ -374,6 +408,15 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                               <Button
                                 size="sm"
                                 variant="outline"
+                                onClick={() => openEditUser(u)}
+                                className="text-xs gap-1 border-border"
+                                title="Editar usuário / alterar senha"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleDeleteUser(u.id, u.email)}
                                 className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/5"
                                 title="Excluir usuário"
@@ -421,6 +464,43 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEditingUser(null)}>
+          <div className="bg-white dark:bg-[#202c33] rounded-2xl shadow-xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                <Pencil className="w-4 h-4" /> Editar Usuário
+              </h3>
+              <button onClick={() => setEditingUser(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome</label>
+                <Input value={editForm.display_name} onChange={e => setEditForm(f => ({ ...f, display_name: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">E-mail</label>
+                <Input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nova senha (opcional)</label>
+                <Input type="password" placeholder="Deixe em branco para não alterar" value={editForm.password} onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} className="mt-1" />
+                <p className="text-[10px] text-muted-foreground mt-1">Mínimo 6 caracteres.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" size="sm" onClick={() => setEditingUser(null)}>Cancelar</Button>
+              <Button size="sm" onClick={handleSaveEditUser} disabled={actionLoading === editingUser.id} className="bg-primary text-white gap-1">
+                {actionLoading === editingUser.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                Salvar
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

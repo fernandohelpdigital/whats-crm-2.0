@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { action, user_id, instance_name, api_key, base_url, flags } = await req.json();
+    const { action, user_id, instance_name, api_key, base_url, flags, email, password, display_name } = await req.json();
 
     if (action === "list") {
       const { data: users, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
@@ -174,6 +174,22 @@ Deno.serve(async (req) => {
       
       const { error } = await adminClient.from("profiles").update(updateData).eq("id", user_id);
       if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "update_user") {
+      if (!user_id) throw new Error("user_id required");
+      const authUpdate: any = {};
+      if (email) authUpdate.email = email;
+      if (password) authUpdate.password = password;
+      if (Object.keys(authUpdate).length > 0) {
+        const { error: authErr } = await adminClient.auth.admin.updateUserById(user_id, authUpdate);
+        if (authErr) throw authErr;
+      }
+      if (display_name !== undefined) {
+        const { error: profErr } = await adminClient.from("profiles").update({ display_name }).eq("id", user_id);
+        if (profErr) throw profErr;
+      }
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
