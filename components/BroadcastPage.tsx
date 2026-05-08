@@ -51,6 +51,7 @@ interface Props {
 }
 
 const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
+  const [tab, setTab] = useState<'broadcasts' | 'flows'>('broadcasts');
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
