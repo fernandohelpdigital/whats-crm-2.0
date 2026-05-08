@@ -330,13 +330,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                                     <th className="px-8 py-6 tracking-widest">Identificação</th>
                                     <th className="px-6 py-6 tracking-widest text-center">Volume</th>
                                     <th className="px-6 py-6 tracking-widest text-center">Status</th>
-                                    <th className="px-8 py-6 tracking-widest text-center">Permissões</th>
+                                    
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/40">
                                 {filteredInstances.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-8 py-20 text-center font-bold text-muted-foreground/50 text-lg uppercase italic">
+                                        <td colSpan={3} className="px-8 py-20 text-center font-bold text-muted-foreground/50 text-lg uppercase italic">
                                             Nenhuma unidade localizada.
                                         </td>
                                     </tr>
@@ -376,18 +376,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                                                     <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : isConnecting ? 'bg-amber-500 animate-bounce' : 'bg-red-500'}`} />
                                                     {isConnected ? 'Ativa' : isConnecting ? 'Sinc' : 'Inativa'}
                                                 </span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <ModuleToggle active={flags.dashboard} icon={<LayoutDashboard className="w-4 h-4" />} label="Dash" onClick={() => toggleFeature(name, 'dashboard')} />
-                                                    <ModuleToggle active={flags.contacts} icon={<UserCircle className="w-4 h-4" />} label="Contatos" onClick={() => toggleFeature(name, 'contacts')} />
-                                                    <ModuleToggle active={flags.chat} icon={<MessageSquare className="w-4 h-4" />} label="Chat" onClick={() => toggleFeature(name, 'chat')} />
-                                                    <ModuleToggle active={flags.kanban} icon={<Kanban className="w-4 h-4" />} label="Kanban" onClick={() => toggleFeature(name, 'kanban')} />
-                                                    <ModuleToggle active={flags.proposals} icon={<Zap className="w-4 h-4" />} label="Vendas" onClick={() => toggleFeature(name, 'proposals')} />
-                                                    <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-4 h-4" />} label="Follow" onClick={() => toggleFeature(name, 'followup')} />
-                                                    <ModuleToggle active={flags.extractor} icon={<DownloadIcon className="w-4 h-4" />} label="Extrator" onClick={() => toggleFeature(name, 'extractor')} />
-                                                    <ModuleToggle active={flags.broadcast} icon={<Send className="w-4 h-4" />} label="Transm." onClick={() => toggleFeature(name, 'broadcast')} />
-                                                </div>
                                             </td>
                                         </tr>
                                     );
