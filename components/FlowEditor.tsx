@@ -149,6 +149,45 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
     })();
   }, [flowId]);
 
+  // Realtime: list of runs in this flow + counts per node
+  useEffect(() => {
+    if (!flowId) return;
+    let mounted = true;
+    const load = async () => {
+      const { data } = await supabase
+        .from('flow_runs')
+        .select('id, contact_phone, contact_name, current_node_id, status, scheduled_at, last_event_at, last_message_text, error, updated_at')
+        .eq('flow_id', flowId)
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      if (mounted) setRuns(data || []);
+    };
+    load();
+    const channel = supabase
+      .channel(`flow_runs_${flowId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flow_runs', filter: `flow_id=eq.${flowId}` }, () => load())
+      .subscribe();
+    const interval = setInterval(load, 8000);
+    return () => { mounted = false; clearInterval(interval); supabase.removeChannel(channel); };
+  }, [flowId]);
+
+  // Counts per node (active runs only)
+  const nodeCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const r of runs) {
+      if (['pending', 'waiting_input', 'scheduled'].includes(r.status) && r.current_node_id) {
+        map[r.current_node_id] = (map[r.current_node_id] || 0) + 1;
+      }
+    }
+    return map;
+  }, [runs]);
+
+  // Inject counts into nodes for renderer
+  const nodesWithCounts = useMemo(
+    () => doc.nodes.map((n) => ({ ...n, data: { ...(n.data as any), _liveCount: nodeCounts[n.id] || 0 } })),
+    [doc.nodes, nodeCounts]
+  );
+
   const onNodesChange = useCallback((changes: any) => {
     setDoc((d) => ({ ...d, nodes: applyNodeChanges(changes, d.nodes) }));
   }, []);
