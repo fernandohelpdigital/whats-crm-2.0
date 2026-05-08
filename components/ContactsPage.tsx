@@ -64,6 +64,70 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu }) => {
 
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
+  const syncFromWhatsApp = useCallback(async () => {
+    if (!profile?.instance_name || !profile?.api_key) {
+      toast.error('Instância do WhatsApp não configurada');
+      return;
+    }
+    setSyncing(true);
+    const toastId = toast.loading('Buscando contatos do WhatsApp...');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const baseUrl = (profile.base_url || 'https://api.automacaohelp.com.br').replace(/\/$/, '');
+      const url = `${baseUrl}/chat/findContacts/${profile.instance_name}`;
+      const res = await axios.post(url, { where: {} }, {
+        headers: { apikey: profile.api_key, 'Content-Type': 'application/json' },
+      });
+      const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+
+      // Apenas contatos com JID terminando em @s.whatsapp.net
+      const valid = raw
+        .map((c: any) => {
+          const jid: string = c.remoteJid || c.id || '';
+          if (!jid.endsWith('@s.whatsapp.net')) return null;
+          const phone = jid.split('@')[0].replace(/\D/g, '');
+          if (!phone) return null;
+          const name = c.pushName || c.name || c.verifiedName || phone;
+          return {
+            user_id: user.id,
+            phone,
+            name,
+            avatar_url: c.profilePictureUrl || c.profilePicUrl || null,
+          };
+        })
+        .filter(Boolean) as Array<{ user_id: string; phone: string; name: string; avatar_url: string | null }>;
+
+      // Dedup por phone
+      const map = new Map<string, typeof valid[0]>();
+      valid.forEach((c) => { if (!map.has(c.phone)) map.set(c.phone, c); });
+      const list = Array.from(map.values());
+
+      if (list.length === 0) {
+        toast.error('Nenhum contato @s.whatsapp.net encontrado', { id: toastId });
+        return;
+      }
+
+      let upserted = 0;
+      for (let i = 0; i < list.length; i += 200) {
+        const batch = list.slice(i, i + 200);
+        const { error } = await supabase
+          .from('contacts')
+          .upsert(batch, { onConflict: 'phone,user_id' });
+        if (error) throw error;
+        upserted += batch.length;
+      }
+      toast.success(`${upserted} contato(s) sincronizado(s)`, { id: toastId });
+      await loadContacts();
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Erro ao sincronizar: ' + (e?.response?.data?.message || e.message), { id: toastId });
+    } finally {
+      setSyncing(false);
+    }
+  }, [profile, loadContacts]);
+
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.phone.trim()) {
       toast.error('Nome e telefone são obrigatórios');
