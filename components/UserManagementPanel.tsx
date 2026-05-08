@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input } from './ui/Shared';
-import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle, Send } from 'lucide-react';
+import { Users, ShieldCheck, ShieldOff, Loader2, RefreshCw, Search, Link2, Key, ChevronDown, ChevronUp, Save, LayoutDashboard, MessageSquare, Kanban, Zap, CalendarClock, Trash2, Download as DownloadIcon, UserCircle, Send, Pencil, X } from 'lucide-react';
 import { Instance, FeatureFlags } from '../types';
 import { supabase } from '@/src/integrations/supabase/client';
 import toast from 'react-hot-toast';
