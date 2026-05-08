@@ -280,6 +280,99 @@ export type Database = {
         }
         Relationships: []
       }
+      flow_runs: {
+        Row: {
+          contact_name: string | null
+          contact_phone: string
+          context: Json
+          created_at: string
+          current_node_id: string | null
+          error: string | null
+          flow_id: string
+          id: string
+          last_event_at: string | null
+          last_message_text: string | null
+          scheduled_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone: string
+          context?: Json
+          created_at?: string
+          current_node_id?: string | null
+          error?: string | null
+          flow_id: string
+          id?: string
+          last_event_at?: string | null
+          last_message_text?: string | null
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone?: string
+          context?: Json
+          created_at?: string
+          current_node_id?: string | null
+          error?: string | null
+          flow_id?: string
+          id?: string
+          last_event_at?: string | null
+          last_message_text?: string | null
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flows: {
+        Row: {
+          created_at: string
+          description: string | null
+          edges: Json
+          enabled: boolean
+          id: string
+          name: string
+          nodes: Json
+          start_node_id: string | null
+          triggers: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          edges?: Json
+          enabled?: boolean
+          id?: string
+          name: string
+          nodes?: Json
+          start_node_id?: string | null
+          triggers?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          edges?: Json
+          enabled?: boolean
+          id?: string
+          name?: string
+          nodes?: Json
+          start_node_id?: string | null
+          triggers?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       follow_up_tasks: {
         Row: {
           avatar_url: string | null

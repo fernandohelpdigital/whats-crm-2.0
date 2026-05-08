@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Button } from './ui/Shared';
-import { Loader2, Plus, Play, Pause, Trash2, BarChart3, Menu, X, Check } from 'lucide-react';
+import { Loader2, Plus, Play, Pause, Trash2, BarChart3, Menu, X, Check, Send, Workflow } from 'lucide-react';
 import toast from 'react-hot-toast';
+import FlowsPage from './FlowsPage';
 
 interface Broadcast {
   id: string;
@@ -50,6 +51,7 @@ interface Props {
 }
 
 const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
+  const [tab, setTab] = useState<'broadcasts' | 'flows'>('broadcasts');
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
@@ -113,14 +115,34 @@ const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
           </button>
           <div>
             <h1 className="text-xl font-bold">Transmissão</h1>
-            <p className="text-xs text-muted-foreground">Disparos em massa via WhatsApp</p>
+            <p className="text-xs text-muted-foreground">Disparos em massa e fluxos automáticos via WhatsApp</p>
           </div>
         </div>
-        <Button onClick={() => setShowWizard(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Transmissão
-        </Button>
+        {tab === 'broadcasts' && (
+          <Button onClick={() => setShowWizard(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Nova Transmissão
+          </Button>
+        )}
       </header>
 
+      <div className="flex gap-1 px-4 pt-3 border-b border-border bg-card">
+        <button
+          onClick={() => setTab('broadcasts')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-bold border-b-2 -mb-px ${tab === 'broadcasts' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+        >
+          <Send className="h-4 w-4" /> Transmissões
+        </button>
+        <button
+          onClick={() => setTab('flows')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-bold border-b-2 -mb-px ${tab === 'flows' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+        >
+          <Workflow className="h-4 w-4" /> Fluxos
+        </button>
+      </div>
+
+      {tab === 'flows' ? (
+        <div className="flex-1 overflow-auto"><FlowsPage /></div>
+      ) : (
       <div className="flex-1 overflow-auto p-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
@@ -181,6 +203,7 @@ const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
           </div>
         )}
       </div>
+      )}
 
       {showWizard && <BroadcastWizard onClose={() => { setShowWizard(false); load(); }} />}
       {metricsId && <BroadcastMetrics broadcastId={metricsId} onClose={() => setMetricsId(null)} />}
