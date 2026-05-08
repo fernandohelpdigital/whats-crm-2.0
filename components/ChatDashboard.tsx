@@ -750,7 +750,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
                 {currentView === 'dashboard' && features.dashboard ? (
                      <Dashboard leads={leads} onOpenMenu={() => setIsMobileMenuOpen(true)} />
                  ) : currentView === 'contacts' ? (
-                     <ContactsPage onOpenMenu={() => setIsMobileMenuOpen(true)} />
+                     <ContactsPage onOpenMenu={() => setIsMobileMenuOpen(true)} config={config} />
                  ) : currentView === 'extractor' && config ? (
                      <GroupExtractorPage config={config} onOpenMenu={() => setIsMobileMenuOpen(true)} />
                  ) : currentView === 'broadcast' && features.broadcast ? (
