@@ -445,8 +445,17 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             .gte('sent_at', since)
             .order('sent_at', { ascending: false })
             .limit(100);
-          const match = (logs || []).find(l => (l.phone || '').replace(/\D/g, '').endsWith(phoneDigits) || phoneDigits.endsWith((l.phone || '').replace(/\D/g, '')));
-          if (!match) return;
+          const tail = phoneDigits.slice(-8);
+          const match = (logs || []).find(l => {
+            const p = (l.phone || '').replace(/\D/g, '');
+            if (!p) return false;
+            return p.endsWith(tail) || phoneDigits.endsWith(p.slice(-8));
+          });
+          if (!match) {
+            console.log('[Broadcast] reply received but no matching log', { phoneDigits });
+            return;
+          }
+          console.log('[Broadcast] reply matched', { broadcast_id: match.broadcast_id, phone: match.phone });
 
           await supabase
             .from('broadcast_logs')
