@@ -138,7 +138,7 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
           name: data.name,
           description: data.description || '',
           enabled: data.enabled,
-          triggers: data.triggers || [],
+          triggers: (data.triggers as any) || [],
           nodes: (data.nodes as any) || [],
           edges: (data.edges as any) || [],
           start_node_id: data.start_node_id,
