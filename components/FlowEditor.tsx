@@ -18,7 +18,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Button, Input } from './ui/Shared';
-import { ArrowLeft, MessageSquare, Clock, GitBranch, Tag, Save, Play, Plus, Trash2, Zap } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock, GitBranch, Tag, Save, Play, Plus, Trash2, Zap, Activity, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type NodeKind = 'trigger' | 'send_message' | 'wait_reply' | 'delay' | 'condition' | 'crm_action';
