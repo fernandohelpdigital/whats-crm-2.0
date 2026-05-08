@@ -203,6 +203,7 @@ const BroadcastPage: React.FC<Props> = ({ onOpenMenu }) => {
           </div>
         )}
       </div>
+      )}
 
       {showWizard && <BroadcastWizard onClose={() => { setShowWizard(false); load(); }} />}
       {metricsId && <BroadcastMetrics broadcastId={metricsId} onClose={() => setMetricsId(null)} />}
