@@ -140,7 +140,32 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onOpenMenu, config }) => {
         if (error) throw error;
         upserted += batch.length;
       }
-      toast.success(`${upserted} contato(s) sincronizado(s)`, { id: toastId });
+
+      // Criar leads no CRM apenas para contatos novos (preserva posições existentes)
+      toast.loading('Atualizando CRM...', { id: toastId });
+      const { data: existingDeals } = await supabase
+        .from('deals')
+        .select('phone')
+        .eq('user_id', user.id);
+      const existingPhones = new Set((existingDeals || []).map((d: any) => d.phone).filter(Boolean));
+      const newDeals = list
+        .filter((c) => !existingPhones.has(c.phone))
+        .map((c) => ({
+          user_id: user.id,
+          title: c.name,
+          company: '',
+          phone: c.phone,
+          avatar_url: c.avatar_url,
+          status: 'lead_capturado' as const,
+        }));
+      let dealsCreated = 0;
+      for (let i = 0; i < newDeals.length; i += 200) {
+        const batch = newDeals.slice(i, i + 200);
+        const { error } = await supabase.from('deals').insert(batch);
+        if (error) throw error;
+        dealsCreated += batch.length;
+      }
+      toast.success(`${upserted} contato(s) • ${dealsCreated} novo(s) lead(s) no CRM`, { id: toastId });
       await loadContacts();
     } catch (e: any) {
       console.error(e);
