@@ -21,7 +21,10 @@ interface Broadcast {
   replied_count: number;
   current_index: number;
   created_at: string;
+  flow_id?: string | null;
 }
+
+interface FlowOption { id: string; name: string; enabled: boolean }
 
 interface Contact {
   id: string;
