@@ -349,6 +349,27 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   ))}
                 </div>
               </div>
+              <div>
+                <label className="text-sm font-bold mb-2 block">Fluxo automático (opcional)</label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Vincule um fluxo a este disparo. Ele será acionado automaticamente quando um lead responder a mensagem desta transmissão.
+                </p>
+                <select
+                  className="w-full p-3 rounded-lg bg-muted border border-border"
+                  value={flowId}
+                  onChange={(e) => setFlowId(e.target.value)}
+                >
+                  <option value="">Sem fluxo</option>
+                  {flows.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}{f.enabled ? '' : ' (inativo)'}
+                    </option>
+                  ))}
+                </select>
+                {flows.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">Nenhum fluxo criado. Crie em Transmissão → Fluxos.</p>
+                )}
+              </div>
             </div>
           )}
 
