@@ -162,9 +162,26 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
     contactsRef.current = contacts;
   }, [contacts]);
 
-  // Load feature flags from Supabase (per-user)
+  // Load feature flags from Supabase (per-user) with realtime
   useEffect(() => {
     let cancelled = false;
+    let channel: any = null;
+    let userId: string | null = null;
+
+    const applyFlags = (data: any) => {
+      const userFlags: FeatureFlags = {
+        dashboard: data?.dashboard ?? true,
+        kanban: data?.kanban ?? true,
+        proposals: data?.proposals ?? true,
+        followup: data?.followup ?? true,
+        chat: data?.chat ?? true,
+        contacts: data?.contacts ?? true,
+        extractor: data?.extractor ?? false,
+        broadcast: data?.broadcast ?? true,
+      };
+      setFeatures(userFlags);
+    };
+
     const loadFeatures = async () => {
         if (isAdmin) {
             setFeatures(ADMIN_FLAGS);
@@ -174,6 +191,7 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user || cancelled) return;
+          userId = user.id;
 
           const { data } = await supabase
             .from('user_feature_flags')
@@ -181,27 +199,69 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
             .eq('user_id', user.id)
             .single();
           
-          if (data && !cancelled) {
-            const userFlags: FeatureFlags = {
-              dashboard: data.dashboard ?? true,
-              kanban: data.kanban ?? true,
-              proposals: data.proposals ?? true,
-              followup: data.followup ?? true,
-              chat: data.chat ?? true,
-              contacts: data.contacts ?? true,
-              extractor: data.extractor ?? false,
-              broadcast: data.broadcast ?? true,
-            };
-            setFeatures(userFlags);
-          }
+          if (data && !cancelled) applyFlags(data);
+
+          // Realtime subscription
+          channel = supabase
+            .channel(`user_feature_flags:${user.id}`)
+            .on('postgres_changes', {
+              event: '*',
+              schema: 'public',
+              table: 'user_feature_flags',
+              filter: `user_id=eq.${user.id}`,
+            }, (payload: any) => {
+              if (cancelled) return;
+              if (payload.eventType === 'DELETE') {
+                setFeatures(DEFAULT_FLAGS);
+              } else if (payload.new) {
+                applyFlags(payload.new);
+              }
+            })
+            .subscribe();
         } catch (e) {
           console.error("Erro ao ler features", e);
         }
     };
 
     loadFeatures();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [isAdmin]);
+
+  // Redirect away from disabled views in realtime
+  useEffect(() => {
+    if (isAdmin) return;
+    const map: Record<string, keyof FeatureFlags | null> = {
+      dashboard: 'dashboard',
+      contacts: 'contacts',
+      extractor: 'extractor',
+      broadcast: 'broadcast',
+      chat: 'chat',
+      kanban: 'kanban',
+      proposals: 'proposals',
+      followup: 'followup',
+      settings: null,
+      admin: null,
+    };
+    const required = map[currentView];
+    if (required && !features[required]) {
+      // Find first enabled view in canonical order
+      const order: Array<{ k: keyof FeatureFlags; v: any }> = [
+        { k: 'dashboard', v: 'dashboard' },
+        { k: 'contacts', v: 'contacts' },
+        { k: 'extractor', v: 'extractor' },
+        { k: 'broadcast', v: 'broadcast' },
+        { k: 'chat', v: 'chat' },
+        { k: 'kanban', v: 'kanban' },
+        { k: 'proposals', v: 'proposals' },
+        { k: 'followup', v: 'followup' },
+      ];
+      const first = order.find(o => features[o.k]);
+      setCurrentView(first ? first.v : 'settings');
+    }
+  }, [features, currentView, isAdmin]);
 
   const syncContactsToSupabase = useCallback(async (chatContacts: Contact[]) => {
     try {
