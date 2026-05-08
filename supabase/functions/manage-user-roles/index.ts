@@ -177,6 +177,22 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    if (action === "update_user") {
+      if (!user_id) throw new Error("user_id required");
+      const authUpdate: any = {};
+      if (email) authUpdate.email = email;
+      if (password) authUpdate.password = password;
+      if (Object.keys(authUpdate).length > 0) {
+        const { error: authErr } = await adminClient.auth.admin.updateUserById(user_id, authUpdate);
+        if (authErr) throw authErr;
+      }
+      if (display_name !== undefined) {
+        const { error: profErr } = await adminClient.from("profiles").update({ display_name }).eq("id", user_id);
+        if (profErr) throw profErr;
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (action === "list_user_flags") {
       const { data, error } = await adminClient.from("user_feature_flags").select("*");
       if (error) throw error;
