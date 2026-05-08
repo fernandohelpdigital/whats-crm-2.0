@@ -317,15 +317,15 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ instances, ad
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <ModuleToggle active={flags.dashboard} icon={<LayoutDashboard className="w-3.5 h-3.5" />} label="Dash" onClick={() => toggleUserFeature(u.id, 'dashboard')} />
                           <ModuleToggle active={flags.contacts} icon={<UserCircle className="w-3.5 h-3.5" />} label="Contatos" onClick={() => toggleUserFeature(u.id, 'contacts')} />
-                          <ModuleToggle active={flags.chat} icon={<MessageSquare className="w-3.5 h-3.5" />} label="Chat" onClick={() => toggleUserFeature(u.id, 'chat')} />
-                          <ModuleToggle active={flags.kanban} icon={<Kanban className="w-3.5 h-3.5" />} label="Kanban" onClick={() => toggleUserFeature(u.id, 'kanban')} />
-                          <ModuleToggle active={flags.proposals} icon={<Zap className="w-3.5 h-3.5" />} label="Vendas" onClick={() => toggleUserFeature(u.id, 'proposals')} />
-                          <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-3.5 h-3.5" />} label="Follow" onClick={() => toggleUserFeature(u.id, 'followup')} />
                           <ModuleToggle active={flags.extractor} icon={<DownloadIcon className="w-3.5 h-3.5" />} label="Extrator" onClick={() => toggleUserFeature(u.id, 'extractor')} />
                           <ModuleToggle active={flags.broadcast} icon={<Send className="w-3.5 h-3.5" />} label="Transm." onClick={() => toggleUserFeature(u.id, 'broadcast')} />
+                          <ModuleToggle active={flags.chat} icon={<MessageSquare className="w-3.5 h-3.5" />} label="Conversas" onClick={() => toggleUserFeature(u.id, 'chat')} />
+                          <ModuleToggle active={flags.kanban} icon={<Kanban className="w-3.5 h-3.5" />} label="Pipeline" onClick={() => toggleUserFeature(u.id, 'kanban')} />
+                          <ModuleToggle active={flags.proposals} icon={<Zap className="w-3.5 h-3.5" />} label="Propostas" onClick={() => toggleUserFeature(u.id, 'proposals')} />
+                          <ModuleToggle active={flags.followup} icon={<CalendarClock className="w-3.5 h-3.5" />} label="Follow-up" onClick={() => toggleUserFeature(u.id, 'followup')} />
                           <button
                             onClick={() => handleSaveUserFlags(u.id)}
                             disabled={actionLoading === u.id}
