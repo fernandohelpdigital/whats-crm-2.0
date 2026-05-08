@@ -286,7 +286,13 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
             </span>
           </label>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {flowId && (
+            <Button variant="outline" onClick={() => setShowLive((v) => !v)}>
+              <Activity className="h-4 w-4 mr-2" />
+              {showLive ? 'Ocultar' : 'Ver'} leads ativos ({runs.filter(r => ['pending','waiting_input','scheduled'].includes(r.status)).length})
+            </Button>
+          )}
           <Button onClick={save} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Salvando...' : 'Salvar'}</Button>
         </div>
       </header>
