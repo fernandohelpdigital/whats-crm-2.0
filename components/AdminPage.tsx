@@ -336,7 +336,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ config }) => {
                             <tbody className="divide-y divide-border/40">
                                 {filteredInstances.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-8 py-20 text-center font-bold text-muted-foreground/50 text-lg uppercase italic">
+                                        <td colSpan={3} className="px-8 py-20 text-center font-bold text-muted-foreground/50 text-lg uppercase italic">
                                             Nenhuma unidade localizada.
                                         </td>
                                     </tr>
