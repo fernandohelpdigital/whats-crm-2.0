@@ -434,6 +434,105 @@ const Inspector: React.FC<{ node: Node; onChange: (p: any) => void; onDelete: ()
   );
 };
 
+const DEAL_STAGES: { value: string; label: string }[] = [
+  { value: 'lead_capturado', label: 'Lead Capturado' },
+  { value: 'contato_inicial', label: 'Contato Inicial' },
+  { value: 'diagnostico_levantamento', label: 'Diagnóstico / Levantamento' },
+  { value: 'proposta_construcao', label: 'Proposta em Construção' },
+  { value: 'proposta_enviada', label: 'Proposta Enviada' },
+  { value: 'negociacao', label: 'Negociação / Ajustes' },
+  { value: 'fechado_aprovado', label: 'Fechado – Aprovado' },
+  { value: 'em_execucao', label: 'Em Execução' },
+  { value: 'entrega_homologacao', label: 'Entrega / Homologação' },
+  { value: 'pos_venda', label: 'Pós-Venda / Suporte' },
+  { value: 'em_followup', label: 'Em Follow-up' },
+  { value: 'perdido', label: 'Perdido' },
+];
+
+const CrmActionEditor: React.FC<{ data: any; onChange: (p: any) => void }> = ({ data, onChange }) => {
+  const [tags, setTags] = useState<string[]>([]);
+  const action = data.action || 'add_tag';
+
+  useEffect(() => {
+    (async () => {
+      const { data: cs } = await supabase.from('contacts').select('tags');
+      const set = new Set<string>();
+      (cs || []).forEach((c: any) => (c.tags || []).forEach((t: string) => t && set.add(t)));
+      setTags(Array.from(set).sort());
+    })();
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-bold">Ação</label>
+      <select
+        className="w-full p-2 rounded border border-border bg-background text-sm"
+        value={action}
+        onChange={(e) => onChange({ action: e.target.value, value: '' })}
+      >
+        <option value="add_tag">Adicionar tag ao contato</option>
+        <option value="move_deal">Mover deal para etapa</option>
+        <option value="create_followup">Criar follow-up</option>
+      </select>
+
+      {action === 'move_deal' && (
+        <>
+          <label className="text-xs font-bold">Etapa do CRM</label>
+          <select
+            className="w-full p-2 rounded border border-border bg-background text-sm"
+            value={data.value || ''}
+            onChange={(e) => onChange({ value: e.target.value })}
+          >
+            <option value="">Selecione uma etapa...</option>
+            {DEAL_STAGES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </>
+      )}
+
+      {action === 'add_tag' && (
+        <>
+          <label className="text-xs font-bold">Tag existente</label>
+          <select
+            className="w-full p-2 rounded border border-border bg-background text-sm"
+            value={tags.includes(data.value) ? data.value : ''}
+            onChange={(e) => onChange({ value: e.target.value })}
+          >
+            <option value="">— ou digite uma nova abaixo —</option>
+            {tags.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <label className="text-xs font-bold">Nome da tag</label>
+          <Input
+            value={data.value || ''}
+            onChange={(e) => onChange({ value: e.target.value })}
+            placeholder="Ex: Quente, VIP, Interessado"
+          />
+        </>
+      )}
+
+      {action === 'create_followup' && (
+        <>
+          <label className="text-xs font-bold">Mensagem do follow-up</label>
+          <textarea
+            className="w-full p-2 rounded border border-border bg-background text-sm h-20"
+            value={data.value || ''}
+            onChange={(e) => onChange({ value: e.target.value })}
+            placeholder="Ex: Retornar contato. Use {{name}} para o nome."
+          />
+          <label className="text-xs font-bold">Agendar para daqui a (horas)</label>
+          <Input
+            type="number"
+            min={1}
+            value={data.delay_hours ?? 24}
+            onChange={(e) => onChange({ delay_hours: parseInt(e.target.value) || 24 })}
+          />
+        </>
+      )}
+    </div>
+  );
+};
+
 const TriggerEditor: React.FC<{ data: any; onChange: (p: any) => void }> = ({ data, onChange }) => {
   const triggers: any[] = data.triggers || [];
   const update = (i: number, patch: any) => {
