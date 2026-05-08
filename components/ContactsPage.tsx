@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/src/integrations/supabase/client';
-import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical, Filter, ChevronDown, CheckSquare, Square, MinusSquare } from 'lucide-react';
+import { Loader2, Search, Plus, UserCircle, Phone, Mail, Tag, Trash2, Edit2, X, Menu, Users, MoreVertical, Filter, ChevronDown, CheckSquare, Square, MinusSquare, RefreshCcw } from 'lucide-react';
 import { Button } from './ui/Shared';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/src/hooks/useAuth';
+import axios from 'axios';
 
 interface DBContact {
   id: string;
