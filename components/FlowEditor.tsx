@@ -18,7 +18,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { supabase } from '@/src/integrations/supabase/client';
 import { Button, Input } from './ui/Shared';
-import { ArrowLeft, MessageSquare, Clock, GitBranch, Tag, Save, Play, Plus, Trash2, Zap } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock, GitBranch, Tag, Save, Play, Plus, Trash2, Zap, Activity, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type NodeKind = 'trigger' | 'send_message' | 'wait_reply' | 'delay' | 'condition' | 'crm_action';
@@ -50,7 +50,7 @@ const FlowNode: React.FC<NodeProps> = ({ data, selected, type }) => {
   const isTrigger = type === 'trigger';
   const isCondition = type === 'condition';
   return (
-    <div className={`rounded-xl shadow-md bg-card border-2 ${selected ? 'border-primary' : 'border-border'} min-w-[220px]`}>
+    <div className={`relative rounded-xl shadow-md bg-card border-2 ${selected ? 'border-primary' : 'border-border'} min-w-[220px]`}>
       {!isTrigger && <Handle type="target" position={Position.Top} className="!bg-primary" />}
       <div className={`flex items-center gap-2 px-3 py-2 ${meta.color} text-white rounded-t-[10px]`}>
         <Icon className="h-4 w-4" />
@@ -59,6 +59,12 @@ const FlowNode: React.FC<NodeProps> = ({ data, selected, type }) => {
       <div className="px-3 py-2 text-xs text-foreground">
         <FlowNodePreview type={type as NodeKind} data={data as any} />
       </div>
+      {(data as any)?._liveCount > 0 && (
+        <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold rounded-full px-2 py-0.5 shadow-md flex items-center gap-1 animate-pulse">
+          <Activity className="h-3 w-3" />
+          {(data as any)._liveCount}
+        </div>
+      )}
       {isCondition ? (
         <>
           <Handle id="match" type="source" position={Position.Bottom} style={{ left: '30%' }} className="!bg-emerald-500" />
@@ -127,6 +133,8 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [runs, setRuns] = useState<any[]>([]);
+  const [showLive, setShowLive] = useState(true);
 
   useEffect(() => {
     if (!flowId) return;
@@ -146,6 +154,45 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
       }
     })();
   }, [flowId]);
+
+  // Realtime: list of runs in this flow + counts per node
+  useEffect(() => {
+    if (!flowId) return;
+    let mounted = true;
+    const load = async () => {
+      const { data } = await supabase
+        .from('flow_runs')
+        .select('id, contact_phone, contact_name, current_node_id, status, scheduled_at, last_event_at, last_message_text, error, updated_at')
+        .eq('flow_id', flowId)
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      if (mounted) setRuns(data || []);
+    };
+    load();
+    const channel = supabase
+      .channel(`flow_runs_${flowId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flow_runs', filter: `flow_id=eq.${flowId}` }, () => load())
+      .subscribe();
+    const interval = setInterval(load, 8000);
+    return () => { mounted = false; clearInterval(interval); supabase.removeChannel(channel); };
+  }, [flowId]);
+
+  // Counts per node (active runs only)
+  const nodeCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const r of runs) {
+      if (['pending', 'waiting_input', 'scheduled'].includes(r.status) && r.current_node_id) {
+        map[r.current_node_id] = (map[r.current_node_id] || 0) + 1;
+      }
+    }
+    return map;
+  }, [runs]);
+
+  // Inject counts into nodes for renderer
+  const nodesWithCounts = useMemo(
+    () => doc.nodes.map((n) => ({ ...n, data: { ...(n.data as any), _liveCount: nodeCounts[n.id] || 0 } })),
+    [doc.nodes, nodeCounts]
+  );
 
   const onNodesChange = useCallback((changes: any) => {
     setDoc((d) => ({ ...d, nodes: applyNodeChanges(changes, d.nodes) }));
@@ -239,7 +286,13 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
             </span>
           </label>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {flowId && (
+            <Button variant="outline" onClick={() => setShowLive((v) => !v)}>
+              <Activity className="h-4 w-4 mr-2" />
+              {showLive ? 'Ocultar' : 'Ver'} leads ativos ({runs.filter(r => ['pending','waiting_input','scheduled'].includes(r.status)).length})
+            </Button>
+          )}
           <Button onClick={save} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Salvando...' : 'Salvar'}</Button>
         </div>
       </header>
@@ -271,7 +324,7 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
         {/* Canvas */}
         <div className="flex-1 relative bg-muted/30">
           <ReactFlow
-            nodes={doc.nodes}
+            nodes={nodesWithCounts}
             edges={doc.edges}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
@@ -303,6 +356,10 @@ const FlowEditorInner: React.FC<Props> = ({ flowId, onClose }) => {
             </div>
           )}
         </aside>
+
+        {showLive && flowId && (
+          <LiveRunsPanel runs={runs} nodes={doc.nodes} onClose={() => setShowLive(false)} onFocusNode={(id) => setSelectedId(id)} />
+        )}
       </div>
     </div>
   );
@@ -445,6 +502,109 @@ const TriggerEditor: React.FC<{ data: any; onChange: (p: any) => void }> = ({ da
       ))}
       <Button size="sm" variant="outline" onClick={add}><Plus className="h-3 w-3 mr-1" />Adicionar gatilho</Button>
     </div>
+  );
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  pending: 'bg-blue-500/20 text-blue-700 dark:text-blue-300',
+  waiting_input: 'bg-amber-500/20 text-amber-700 dark:text-amber-300',
+  scheduled: 'bg-purple-500/20 text-purple-700 dark:text-purple-300',
+  completed: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300',
+  failed: 'bg-red-500/20 text-red-700 dark:text-red-300',
+  cancelled: 'bg-slate-500/20 text-slate-700 dark:text-slate-300',
+};
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Processando',
+  waiting_input: 'Aguardando resposta',
+  scheduled: 'Aguardando atraso',
+  completed: 'Concluído',
+  failed: 'Falhou',
+  cancelled: 'Cancelado',
+};
+
+const LiveRunsPanel: React.FC<{
+  runs: any[];
+  nodes: Node[];
+  onClose: () => void;
+  onFocusNode: (id: string) => void;
+}> = ({ runs, nodes, onClose, onFocusNode }) => {
+  const [filter, setFilter] = useState<'active' | 'all'>('active');
+  const nodeName = (id?: string | null) => {
+    if (!id) return '—';
+    const n = nodes.find((x) => x.id === id);
+    if (!n) return id;
+    return NODE_META[n.type as NodeKind]?.label || (n.type as string);
+  };
+  const visible = useMemo(
+    () => runs.filter((r) => filter === 'all' || ['pending', 'waiting_input', 'scheduled'].includes(r.status)),
+    [runs, filter]
+  );
+  const grouped = useMemo(() => {
+    const m: Record<string, any[]> = {};
+    for (const r of visible) {
+      const k = r.current_node_id || 'sem-no';
+      (m[k] = m[k] || []).push(r);
+    }
+    return m;
+  }, [visible]);
+
+  return (
+    <aside className="w-96 border-l border-border bg-card flex flex-col">
+      <div className="flex items-center justify-between p-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-emerald-500" />
+          <h3 className="font-bold text-sm">Leads no fluxo (tempo real)</h3>
+        </div>
+        <button onClick={onClose} className="p-1 rounded hover:bg-muted"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="flex gap-1 px-3 pt-2">
+        {(['active', 'all'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`text-xs px-3 py-1 rounded-full border ${filter === f ? 'bg-primary text-primary-foreground border-primary' : 'border-border'}`}
+          >
+            {f === 'active' ? `Ativos (${runs.filter(r => ['pending','waiting_input','scheduled'].includes(r.status)).length})` : `Todos (${runs.length})`}
+          </button>
+        ))}
+      </div>
+      <div className="flex-1 overflow-auto p-3 space-y-3">
+        {visible.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-8">Nenhum lead {filter === 'active' ? 'ativo' : ''} neste fluxo ainda.</p>
+        )}
+        {Object.entries(grouped).map(([nodeId, list]) => (
+          <div key={nodeId} className="border border-border rounded-lg overflow-hidden">
+            <button
+              onClick={() => nodeId !== 'sem-no' && onFocusNode(nodeId)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-muted hover:bg-muted/70 text-left"
+            >
+              <span className="text-xs font-bold uppercase tracking-wide">{nodeName(nodeId)}</span>
+              <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">{list.length}</span>
+            </button>
+            <div className="divide-y divide-border">
+              {list.map((r) => (
+                <div key={r.id} className="px-3 py-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold truncate">{r.contact_name || r.contact_phone}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${STATUS_BADGE[r.status] || ''}`}>
+                      {STATUS_LABEL[r.status] || r.status}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{r.contact_phone}</div>
+                  {r.last_message_text && (
+                    <div className="text-[10px] text-muted-foreground mt-1 italic line-clamp-2">"{r.last_message_text}"</div>
+                  )}
+                  {r.scheduled_at && r.status === 'scheduled' && (
+                    <div className="text-[10px] text-purple-600 mt-1">⏱ retoma em {new Date(r.scheduled_at).toLocaleTimeString()}</div>
+                  )}
+                  {r.error && <div className="text-[10px] text-red-500 mt-1">{r.error}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 };
 
