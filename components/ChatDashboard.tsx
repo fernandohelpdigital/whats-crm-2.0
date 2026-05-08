@@ -439,12 +439,12 @@ const ChatDashboard: React.FC<ChatDashboardProps> = ({ config, onLogout }) => {
           const since = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
           const { data: logs } = await supabase
             .from('broadcast_logs')
-            .select('id, broadcast_id, replied_at, phone')
+            .select('id, broadcast_id, replied_at, phone, status')
             .is('replied_at', null)
-            .eq('status', 'sent')
+            .in('status', ['sent', 'read'])
             .gte('sent_at', since)
             .order('sent_at', { ascending: false })
-            .limit(50);
+            .limit(100);
           const match = (logs || []).find(l => (l.phone || '').replace(/\D/g, '').endsWith(phoneDigits) || phoneDigits.endsWith((l.phone || '').replace(/\D/g, '')));
           if (!match) return;
 
