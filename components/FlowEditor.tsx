@@ -429,23 +429,7 @@ const Inspector: React.FC<{ node: Node; onChange: (p: any) => void; onDelete: ()
         </div>
       )}
 
-      {node.type === 'crm_action' && (
-        <div className="space-y-2">
-          <label className="text-xs font-bold">Ação</label>
-          <select
-            className="w-full p-2 rounded border border-border bg-background text-sm"
-            value={data.action || 'add_tag'}
-            onChange={(e) => onChange({ action: e.target.value })}
-          >
-            <option value="add_tag">Adicionar tag ao contato</option>
-            <option value="move_deal">Mover deal para etapa</option>
-            <option value="create_followup">Criar follow-up</option>
-          </select>
-          <label className="text-xs font-bold">Valor</label>
-          <Input value={data.value || ''} onChange={(e) => onChange({ value: e.target.value })}
-            placeholder={data.action === 'move_deal' ? 'ex: qualificado' : data.action === 'create_followup' ? 'mensagem do follow-up' : 'nome da tag'} />
-        </div>
-      )}
+      {node.type === 'crm_action' && <CrmActionEditor data={data} onChange={onChange} />}
     </div>
   );
 };
