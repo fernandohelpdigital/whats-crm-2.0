@@ -456,6 +456,7 @@ const BroadcastWizard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <div className="p-3 rounded-lg bg-muted"><div className="text-xs text-muted-foreground">Atraso</div><div className="font-bold">{DELAY_PRESETS.find((p) => p.id === preset)?.label}</div></div>
                 <div className="p-3 rounded-lg bg-muted"><div className="text-xs text-muted-foreground">Modelos</div><div className="font-bold">{messages.filter((m) => m.trim()).length}</div></div>
                 <div className="p-3 rounded-lg bg-muted"><div className="text-xs text-muted-foreground">Destinatários</div><div className="font-bold">{selected.size}</div></div>
+                <div className="p-3 rounded-lg bg-muted col-span-2"><div className="text-xs text-muted-foreground">Fluxo</div><div className="font-bold">{flowId ? (flows.find(f => f.id === flowId)?.name || '—') : 'Sem fluxo'}</div></div>
               </div>
             </div>
           )}
